@@ -54,18 +54,31 @@ nav::-webkit-scrollbar{display:none;}
 .nb{flex-shrink:0;padding:10px 13px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;}
 .nb.active{color:var(--accent);border-bottom-color:var(--accent);}
 
-/* ── IN-APP NOTIFICATION (inline, not floating) ── */
+/* ── HOME REMINDERS PANEL ── */
+.home-reminders-panel{margin:14px 14px 0;background:var(--card);border-radius:16px;border:1px solid var(--purple-b);overflow:hidden;box-shadow:0 2px 12px rgba(79,70,229,0.08);}
+.home-rem-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,#EEF2FF,#F5F3FF);border-bottom:1px solid var(--purple-b);}
+.home-rem-title{font-size:14px;font-weight:600;color:var(--purple);display:flex;align-items:center;gap:6px;}
+.home-rem-count{font-size:11px;background:var(--purple);color:#fff;border-radius:20px;padding:2px 8px;}
+.home-rem-list{padding:4px 0;}
+.home-rem-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);transition:background .15s;}
+.home-rem-item:last-child{border-bottom:none;}
+.home-rem-item:active{background:var(--bg);}
+.home-rem-icon{font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--purple-bg);flex-shrink:0;}
+.home-rem-body{flex:1;min-width:0;}
+.home-rem-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.home-rem-time{font-size:11px;color:var(--muted);margin-top:1px;}
+.home-rem-status{font-size:11px;padding:2px 8px;border-radius:20px;flex-shrink:0;}
+.home-rem-status.upcoming{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-b);}
+.home-rem-status.done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);}
+.home-rem-status.paused{background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+.home-rem-empty{padding:14px;font-size:13px;color:var(--muted);text-align:center;}
+
+/* ── FIRING NOTIFICATION BANNER (inline) ── */
 .inapp-notif{
-  display:none;
-  align-items:flex-start;
-  gap:12px;
-  background:var(--card);
-  border:1px solid var(--purple-b);
-  border-left:4px solid var(--purple);
-  border-radius:14px;
-  padding:12px 16px;
-  margin:12px 14px 0;
-  box-shadow:0 4px 16px rgba(79,70,229,0.12);
+  display:none;align-items:flex-start;gap:12px;
+  background:var(--card);border:1px solid var(--purple-b);border-left:4px solid var(--purple);
+  border-radius:14px;padding:12px 16px;margin:12px 14px 0;
+  box-shadow:0 4px 16px rgba(79,70,229,0.15);
 }
 .inapp-notif.show{display:flex;animation:slideDown .4s cubic-bezier(.34,1.56,.64,1);}
 @keyframes slideDown{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
@@ -109,21 +122,70 @@ nav::-webkit-scrollbar{display:none;}
 .cil{font-size:14px;line-height:1.4;color:var(--text);}
 .cin{font-size:12px;color:var(--muted);margin-top:2px;}
 
-/* ── WATER POOL ── */
+/* ══════════════════════════════════════════
+   SWIMMING POOL — UPGRADED ANIMATION
+══════════════════════════════════════════ */
 .pool-wrap{padding:14px 16px;}
-.pool-container{position:relative;width:100%;height:160px;border-radius:12px;overflow:hidden;background:#e8f4f8;border:2px solid #b0d8e8;margin-bottom:10px;}
-.pool-sky{position:absolute;top:0;left:0;right:0;height:40%;background:linear-gradient(180deg,#87CEEB 0%,#b8e4f5 100%);}
-.pool-water{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(180deg,#29ABE2 0%,#0077B6 100%);transition:height 0.8s cubic-bezier(.34,1.2,.64,1);}
-.pool-water::before{content:'';position:absolute;top:-6px;left:0;right:0;height:12px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12'%3E%3Cpath d='M0,6 C25,0 50,12 75,6 C100,0 125,12 150,6 C175,0 200,12 200,6 L200,12 L0,12 Z' fill='%2329ABE2'/%3E%3C/svg%3E") repeat-x;background-size:200px 12px;animation:wave 2s linear infinite;}
-@keyframes wave{0%{background-position:0 0;}100%{background-position:200px 0;}}
-.pool-tiles{position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,0.05) 0px,rgba(255,255,255,0.05) 1px,transparent 1px,transparent 20px),repeating-linear-gradient(90deg,rgba(255,255,255,0.05) 0px,rgba(255,255,255,0.05) 1px,transparent 1px,transparent 20px);}
-.pool-person{position:absolute;bottom:0;right:12px;transition:all 0.6s ease;font-size:28px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));}
-.pool-pct-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,100,0.4);pointer-events:none;display:none;}
-.pool-done-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#fff;text-shadow:0 2px 8px rgba(0,0,100,0.4);display:none;flex-direction:column;align-items:center;}
-.pool-done-msg .big{font-size:28px;}
-.pool-done-msg .small{font-size:13px;font-weight:600;}
+.pool-outer{position:relative;width:100%;height:180px;border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#87CEEB 0%,#b8e4f5 60%,#d0ecf8 100%);border:2px solid #6db8d8;box-shadow:inset 0 2px 8px rgba(0,0,0,0.1);}
+
+/* Sky & clouds */
+.pool-sky{position:absolute;top:0;left:0;right:0;height:38%;background:linear-gradient(180deg,#5fa8d3 0%,#87CEEB 60%,#b8e4f5 100%);}
+.cloud{position:absolute;background:#fff;border-radius:50px;opacity:0.8;}
+.cloud::before,.cloud::after{content:'';position:absolute;background:#fff;border-radius:50%;}
+.cloud1{width:40px;height:12px;top:8px;left:14%;animation:cloudDrift 18s linear infinite;}
+.cloud1::before{width:20px;height:18px;top:-10px;left:6px;}
+.cloud1::after{width:14px;height:14px;top:-7px;left:18px;}
+.cloud2{width:30px;height:10px;top:18px;left:58%;animation:cloudDrift 24s linear infinite 4s;}
+.cloud2::before{width:14px;height:14px;top:-8px;left:4px;}
+.cloud2::after{width:10px;height:10px;top:-5px;left:14px;}
+@keyframes cloudDrift{from{transform:translateX(0);}to{transform:translateX(120vw);}}
+
+/* Pool body */
+.pool-water-body{position:absolute;bottom:0;left:0;right:0;transition:height 0.9s cubic-bezier(.34,1.1,.64,1);overflow:hidden;}
+.pool-water-gradient{position:absolute;inset:0;background:linear-gradient(180deg,rgba(41,171,226,0.95) 0%,rgba(0,105,180,0.98) 100%);}
+/* Animated wave surface */
+.pool-wave-wrap{position:absolute;top:-10px;left:0;width:200%;height:20px;overflow:hidden;}
+.pool-wave{position:absolute;top:0;left:0;width:100%;height:20px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 20'%3E%3Cpath d='M0,10 C30,2 70,18 100,10 C130,2 170,18 200,10 C230,2 270,18 300,10 C330,2 370,18 400,10 L400,20 L0,20 Z' fill='%2329ABE2' opacity='0.9'/%3E%3C/svg%3E") repeat-x;background-size:400px 20px;animation:waveSurf 2.2s linear infinite;}
+.pool-wave2{position:absolute;top:4px;left:0;width:100%;height:16px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 16'%3E%3Cpath d='M0,8 C40,0 80,16 120,8 C160,0 200,16 240,8 C280,0 320,16 360,8 C380,4 390,10 400,8 L400,16 L0,16 Z' fill='%230077B6' opacity='0.6'/%3E%3C/svg%3E") repeat-x;background-size:400px 16px;animation:waveSurf2 3s linear infinite reverse;}
+@keyframes waveSurf{0%{transform:translateX(0);}100%{transform:translateX(-400px);}}
+@keyframes waveSurf2{0%{transform:translateX(0);}100%{transform:translateX(-400px);}}
+
+/* Lane lines */
+.pool-lanes{position:absolute;inset:0;pointer-events:none;}
+.lane-line{position:absolute;left:0;right:0;height:1px;background:rgba(255,255,255,0.15);}
+
+/* Tile pattern on walls */
+.pool-tiles-v{position:absolute;top:0;bottom:0;left:0;right:0;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,0.04) 0px,rgba(255,255,255,0.04) 1px,transparent 1px,transparent 24px),repeating-linear-gradient(90deg,rgba(255,255,255,0.04) 0px,rgba(255,255,255,0.04) 1px,transparent 1px,transparent 24px);pointer-events:none;}
+
+/* Pool edge / coping */
+.pool-edge{position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(180deg,#e0f0fa,#c2dff0);border-bottom:1px solid #a0c8e0;z-index:3;}
+
+/* Swimmer */
+.swimmer-wrap{position:absolute;bottom:0;transition:left 1.2s cubic-bezier(.4,0,.2,1), bottom 0.9s cubic-bezier(.34,1.1,.64,1);z-index:10;pointer-events:none;}
+.swimmer-svg{display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));}
+
+/* Splash rings */
+.splash{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,0.6);animation:splashOut 0.7s ease-out forwards;pointer-events:none;}
+@keyframes splashOut{0%{transform:scale(0.2);opacity:1;}100%{transform:scale(1.8);opacity:0;}}
+
+/* Bubbles */
+.bubble{position:absolute;border-radius:50%;background:rgba(255,255,255,0.4);animation:bubbleRise linear forwards;pointer-events:none;}
+@keyframes bubbleRise{0%{transform:translateY(0) scale(1);opacity:0.7;}100%{transform:translateY(-60px) scale(0.3);opacity:0;}}
+
+/* Pool overlay messages */
+.pool-empty-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;transition:opacity .4s;}
+.pool-empty-msg .em-icon{font-size:24px;}
+.pool-empty-msg .em-text{font-size:12px;color:#78a0b0;font-weight:500;margin-top:4px;}
+.pool-done-overlay{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,100,160,0.3);backdrop-filter:blur(1px);z-index:20;}
+.pool-done-overlay .done-big{font-size:30px;animation:bouncePop .5s ease;}
+.pool-done-overlay .done-text{font-size:14px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,100,0.5);margin-top:4px;}
+@keyframes bouncePop{0%{transform:scale(0.5);}60%{transform:scale(1.2);}100%{transform:scale(1);}}
+.pool-pct-badge{position:absolute;top:8px;right:10px;background:rgba(0,0,0,0.35);color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;z-index:15;backdrop-filter:blur(4px);}
+
+/* Glass buttons */
 .wgs{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;}
-.wg{width:34px;height:38px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;transition:all .15s;}
+.wg{width:34px;height:38px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;transition:all .15s;position:relative;}
+.wg:active{transform:scale(0.9);}
 .wg.last{border-style:dashed;}
 .wg.low{background:#FFFBEB;border-color:#FDE68A;}
 .wg.good{background:#ECFDF5;border-color:#A7F3D0;}
@@ -363,7 +425,7 @@ nav::-webkit-scrollbar{display:none;}
 ══════════════════════════════════════════ -->
 <div class="page active" id="page-today">
 
-  <!-- IN-APP NOTIFICATION — inline, pushes content down, never overlaps -->
+  <!-- 1. IN-APP NOTIFICATION ALERT -->
   <div class="inapp-notif" id="inapp-notif">
     <div class="inapp-notif-icon" id="inapp-icon">🔔</div>
     <div class="inapp-notif-body">
@@ -373,7 +435,16 @@ nav::-webkit-scrollbar{display:none;}
     <button class="inapp-notif-close" onclick="closeInApp()">×</button>
   </div>
 
-  <!-- Streak hero — always below the notification -->
+  <!-- 2. HOME REMINDERS PANEL -->
+  <div class="home-reminders-panel" id="home-reminders-panel">
+    <div class="home-rem-header">
+      <div class="home-rem-title">🔔 Today's Reminders</div>
+      <span class="home-rem-count" id="home-rem-count">0</span>
+    </div>
+    <div class="home-rem-list" id="home-rem-list"></div>
+  </div>
+
+  <!-- 3. STREAK HERO -->
   <div class="streak-hero">
     <div class="streak-fire" id="home-streak-fire">🌱</div>
     <div class="streak-info">
@@ -384,7 +455,7 @@ nav::-webkit-scrollbar{display:none;}
     </div>
   </div>
 
-  <!-- Dynamic today sections -->
+  <!-- 4. DYNAMIC TODAY SECTIONS -->
   <div id="today-sections"></div>
 
   <div class="reset-row">
@@ -553,20 +624,17 @@ nav::-webkit-scrollbar{display:none;}
       <button class="notif-enable-btn" id="notif-enable-btn" onclick="requestNotifPermission()">Enable</button>
     </div>
     <div class="abox blue" style="margin:10px 16px 12px;">
-      💡 Works best on Android Chrome. On iOS add to Home Screen first for background notifications.
+      💡 Works best on Android Chrome. On iOS, add to Home Screen first for background notifications.
     </div>
   </div>
-
   <div class="sc">
     <div class="sh"><span class="si">⚡</span><span class="st">Quick presets</span></div>
     <div class="preset-chips" id="preset-chips"></div>
   </div>
-
   <div class="sc">
     <div class="sh"><span class="si">📋</span><span class="st">My reminders</span><span class="r-count-tag" id="r-count-tag">0 active</span></div>
     <div class="reminder-list" id="reminder-list"></div>
   </div>
-
   <div class="sc">
     <div class="sh"><span class="si">➕</span><span class="st">Add new reminder</span></div>
     <div class="add-reminder-form">
@@ -576,7 +644,7 @@ nav::-webkit-scrollbar{display:none;}
       </div>
       <div>
         <label class="form-label">Message (optional)</label>
-        <input class="form-input" id="r-msg" placeholder="e.g. You haven't had water in a while!" maxlength="100"/>
+        <input class="form-input" id="r-msg" placeholder="e.g. Stay hydrated!" maxlength="100"/>
       </div>
       <div class="form-row">
         <div style="flex:1;">
@@ -669,60 +737,60 @@ nav::-webkit-scrollbar{display:none;}
 /* ═══════════════════════════════════════════════════
    DATA LAYER
 ═══════════════════════════════════════════════════ */
-const DB_KEY = 'htrack_v7';
+const DB_KEY = 'htrack_v8';
 
 const DEFAULT_SECTIONS = [
-  {id:'morning',  icon:'🌅',name:'Morning',         tag:'on waking'},
-  {id:'skin_am',  icon:'🧴',name:'Morning skin',    tag:''},
-  {id:'breakfast',icon:'🍳',name:'Breakfast',       tag:''},
-  {id:'lunch',    icon:'🕛',name:'Lunch',           tag:''},
-  {id:'water',    icon:'💧',name:'Water',           tag:'special'},
-  {id:'evening',  icon:'🌇',name:'Evening',         tag:'special'},
-  {id:'dinner',   icon:'🌙',name:'Dinner',          tag:''},
-  {id:'night',    icon:'🌃',name:'Night routine',   tag:''},
-  {id:'prep',     icon:'🔔',name:'Prep for tomorrow',tag:''},
+  {id:'morning', icon:'🌅',name:'Morning',    tag:'on waking'},
+  {id:'skin_am', icon:'🧴',name:'Morning skin',tag:''},
+  {id:'breakfast',icon:'🍳',name:'Breakfast',  tag:''},
+  {id:'lunch',   icon:'🕛',name:'Lunch',       tag:''},
+  {id:'water',   icon:'💧',name:'Water',       tag:'special'},
+  {id:'evening', icon:'🌇',name:'Evening',     tag:'special'},
+  {id:'dinner',  icon:'🌙',name:'Dinner',      tag:''},
+  {id:'night',   icon:'🌃',name:'Night routine',tag:''},
+  {id:'prep',    icon:'🔔',name:'Prep for tomorrow',tag:''},
 ];
 
 const DEFAULT_HABITS = [
-  {id:'lemon',       section:'morning',   name:'Warm lemon water',           note:'1 glass, first thing',               pts:3},
-  {id:'almonds',     section:'morning',   name:'Soaked almonds — 5 pieces',  note:'Soak tonight before sleeping',       pts:3},
-  {id:'walnuts',     section:'morning',   name:'Walnuts — 2 pieces',         note:'',                                   pts:2},
-  {id:'amla',        section:'morning',   name:'Amla — 1 piece or juice',    note:'Vitamin C, hair + liver',            pts:3},
-  {id:'facewash_am', section:'skin_am',   name:'Face wash',                  note:'',                                   pts:2},
-  {id:'moisturizer', section:'skin_am',   name:'Moisturizer',                note:'',                                   pts:2},
-  {id:'sunscreen',   section:'skin_am',   name:'Sunscreen',                  note:'If going outside',                   pts:2},
-  {id:'eggs',        section:'breakfast', name:'2 eggs',                     note:'Protein for hair + skin',            pts:4},
-  {id:'fruit_am',    section:'breakfast', name:'1 fruit',                    note:'Banana / apple / papaya / orange',   pts:3},
-  {id:'lunch',       section:'lunch',     name:'Dal + vegetables + 1–2 roti',note:'',                                   pts:4},
-  {id:'curd',        section:'lunch',     name:'1 bowl curd',                note:'Gut health, reduces dandruff',       pts:3},
-  {id:'dinner',      section:'dinner',    name:'Roti + vegetables only',     note:'No fried food at night',             pts:3},
-  {id:'facewash_pm', section:'night',     name:'Face wash + moisturizer',    note:'',                                   pts:2},
-  {id:'hair_tablets',section:'night',     name:'💊 Take hair tablets',        note:'Take with water after dinner',       pts:4},
-  {id:'keto',        section:'night',     name:'Ketoconazole shampoo',       note:'2× per week — leave 5 min, rinse',   pts:3},
-  {id:'revision',    section:'night',     name:'Revision in bed',            note:'Read notes / flashcards before sleeping',pts:6},
-  {id:'sleep',       section:'night',     name:'Sleep by 9:30–10 PM',        note:'',                                   pts:4},
-  {id:'soak',        section:'prep',      name:'Soak 5 almonds overnight',   note:'',                                   pts:2},
-  {id:'prep_seeds',  section:'prep',      name:'Keep chia / flax seeds ready',note:'',                                  pts:2},
+  {id:'lemon',    section:'morning',  name:'Warm lemon water',        note:'1 glass, first thing',          pts:3},
+  {id:'almonds',  section:'morning',  name:'Soaked almonds — 5 pieces',note:'Soak tonight before sleeping',  pts:3},
+  {id:'walnuts',  section:'morning',  name:'Walnuts — 2 pieces',      note:'',                               pts:2},
+  {id:'amla',     section:'morning',  name:'Amla — 1 piece or juice', note:'Vitamin C, hair + liver',        pts:3},
+  {id:'facewash_am',section:'skin_am',name:'Face wash',               note:'',                               pts:2},
+  {id:'moisturizer',section:'skin_am',name:'Moisturizer',             note:'',                               pts:2},
+  {id:'sunscreen',  section:'skin_am',name:'Sunscreen',               note:'If going outside',               pts:2},
+  {id:'eggs',     section:'breakfast',name:'2 eggs',                  note:'Protein for hair + skin',        pts:4},
+  {id:'fruit_am', section:'breakfast',name:'1 fruit',                 note:'Banana / apple / papaya / orange',pts:3},
+  {id:'lunch',    section:'lunch',    name:'Dal + vegetables + 1–2 roti',note:'',                            pts:4},
+  {id:'curd',     section:'lunch',    name:'1 bowl curd',             note:'Gut health, reduces dandruff',   pts:3},
+  {id:'dinner',   section:'dinner',   name:'Roti + vegetables only',  note:'No fried food at night',         pts:3},
+  {id:'facewash_pm',section:'night',  name:'Face wash + moisturizer', note:'',                               pts:2},
+  {id:'hair_tablets',section:'night', name:'💊 Take hair tablets',    note:'Take with water after dinner',   pts:4},
+  {id:'keto',     section:'night',    name:'Ketoconazole shampoo',    note:'2× per week — leave 5 min, rinse',pts:3},
+  {id:'revision', section:'night',    name:'Revision in bed',         note:'Read notes / flashcards before sleeping',pts:6},
+  {id:'sleep',    section:'night',    name:'Sleep by 9:30–10 PM',     note:'',                               pts:4},
+  {id:'soak',     section:'prep',     name:'Soak 5 almonds overnight',note:'',                               pts:2},
+  {id:'prep_seeds',section:'prep',    name:'Keep chia / flax seeds ready',note:'',                           pts:2},
 ];
 
 const DEFAULT_REMINDERS = [
-  {id:'r1',title:'Good morning! 🌅',      msg:'Lemon water, almonds & amla time!',  time:'06:30',icon:'🌅',days:[0,1,2,3,4,5,6],enabled:true},
-  {id:'r2',title:'Study time 📚',         msg:'4 hours — no phone, no distractions!',time:'10:00',icon:'📚',days:[1,2,3,4,5],    enabled:true},
-  {id:'r3',title:'Drink water 💧',        msg:'Have you had enough water today?',    time:'14:00',icon:'💧',days:[0,1,2,3,4,5,6],enabled:true},
-  {id:'r4',title:'Evening snack 🍎',      msg:'Fruit or seeds before 6 PM',         time:'17:00',icon:'🍎',days:[0,1,2,3,4,5,6],enabled:true},
-  {id:'r5',title:'Take hair tablets 💊',  msg:'Don\'t forget after dinner!',        time:'21:00',icon:'💊',days:[0,1,2,3,4,5,6],enabled:true},
-  {id:'r6',title:'Sleep time 🌙',         msg:'Wind down. Revise & sleep by 10 PM', time:'21:30',icon:'🌙',days:[0,1,2,3,4,5,6],enabled:true},
+  {id:'r1',title:'Good morning! 🌅', msg:'Lemon water, almonds & amla time!',time:'06:30',icon:'🌅',days:[0,1,2,3,4,5,6],enabled:true},
+  {id:'r2',title:'Study time 📚',    msg:'4 hours — no phone, no distractions!',time:'10:00',icon:'📚',days:[1,2,3,4,5],  enabled:true},
+  {id:'r3',title:'Drink water 💧',   msg:'Have you had enough water today?',   time:'14:00',icon:'💧',days:[0,1,2,3,4,5,6],enabled:true},
+  {id:'r4',title:'Evening snack 🍎', msg:'Fruit or seeds before 6 PM',         time:'17:00',icon:'🍎',days:[0,1,2,3,4,5,6],enabled:true},
+  {id:'r5',title:'Take hair tablets 💊',msg:"Don't forget after dinner!",      time:'21:00',icon:'💊',days:[0,1,2,3,4,5,6],enabled:true},
+  {id:'r6',title:'Sleep time 🌙',    msg:'Wind down. Revise & sleep by 10 PM', time:'21:30',icon:'🌙',days:[0,1,2,3,4,5,6],enabled:true},
 ];
 
 const REMINDER_PRESETS = [
-  {title:'Drink water 💧',      msg:'Stay hydrated!',                  time:'10:00',icon:'💧',days:[0,1,2,3,4,5,6]},
-  {title:'Take tablets 💊',     msg:'Don\'t forget your tablets',      time:'21:00',icon:'💊',days:[0,1,2,3,4,5,6]},
-  {title:'Study time 📚',       msg:'4 hours — no distractions!',      time:'09:00',icon:'📚',days:[1,2,3,4,5]},
-  {title:'Morning routine 🌅',  msg:'Lemon water, almonds, amla',      time:'06:30',icon:'🌅',days:[0,1,2,3,4,5,6]},
-  {title:'Sleep reminder 🌙',   msg:'Wind down. Sleep by 10 PM',       time:'21:30',icon:'🌙',days:[0,1,2,3,4,5,6]},
-  {title:'Lunch time 🥗',       msg:'Dal + veggies + roti!',           time:'13:00',icon:'🥗',days:[1,2,3,4,5]},
-  {title:'Evening walk 🏃',     msg:'Get some steps in!',              time:'17:30',icon:'🏃',days:[0,1,2,3,4,5,6]},
-  {title:'Read English 📖',     msg:'10–15 min reading time',          time:'20:00',icon:'📚',days:[0,1,2,3,4,5,6]},
+  {title:'Drink water 💧',    msg:'Stay hydrated!',             time:'10:00',icon:'💧',days:[0,1,2,3,4,5,6]},
+  {title:'Take tablets 💊',   msg:"Don't forget your tablets",  time:'21:00',icon:'💊',days:[0,1,2,3,4,5,6]},
+  {title:'Study time 📚',     msg:'4 hours — no distractions!', time:'09:00',icon:'📚',days:[1,2,3,4,5]},
+  {title:'Morning routine 🌅',msg:'Lemon water, almonds, amla', time:'06:30',icon:'🌅',days:[0,1,2,3,4,5,6]},
+  {title:'Sleep reminder 🌙', msg:'Wind down. Sleep by 10 PM',  time:'21:30',icon:'🌙',days:[0,1,2,3,4,5,6]},
+  {title:'Lunch time 🥗',     msg:'Dal + veggies + roti!',      time:'13:00',icon:'🥗',days:[1,2,3,4,5]},
+  {title:'Evening walk 🏃',   msg:'Get some steps in!',         time:'17:30',icon:'🏃',days:[0,1,2,3,4,5,6]},
+  {title:'Read English 📖',   msg:'10–15 min reading time',     time:'20:00',icon:'📚',days:[0,1,2,3,4,5,6]},
 ];
 
 function defaultState(){
@@ -733,12 +801,11 @@ function defaultState(){
     studyHrs:0, studyStreak:0, lastStudyDate:'',
     engStreak:0, lastEngDate:'',
     earnedBadges:[],
-    habits:   JSON.parse(JSON.stringify(DEFAULT_HABITS)),
-    sections: JSON.parse(JSON.stringify(DEFAULT_SECTIONS)),
+    habits:  JSON.parse(JSON.stringify(DEFAULT_HABITS)),
+    sections:JSON.parse(JSON.stringify(DEFAULT_SECTIONS)),
     reminders:JSON.parse(JSON.stringify(DEFAULT_REMINDERS)),
   };
 }
-
 let state = defaultState();
 
 function save(){ try{ localStorage.setItem(DB_KEY, JSON.stringify(state)); }catch(e){} }
@@ -748,9 +815,9 @@ function load(){
     if(r){
       const p = JSON.parse(r);
       state = Object.assign(defaultState(), p);
-      if(!state.habits   || !state.habits.length)    state.habits    = JSON.parse(JSON.stringify(DEFAULT_HABITS));
-      if(!state.sections || !state.sections.length)  state.sections  = JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
-      if(!state.reminders)                           state.reminders = JSON.parse(JSON.stringify(DEFAULT_REMINDERS));
+      if(!state.habits   || !state.habits.length)   state.habits   = JSON.parse(JSON.stringify(DEFAULT_HABITS));
+      if(!state.sections || !state.sections.length) state.sections = JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+      if(!state.reminders)                          state.reminders= JSON.parse(JSON.stringify(DEFAULT_REMINDERS));
     }
   }catch(e){}
 }
@@ -758,11 +825,11 @@ function load(){
 /* ═══════════════════════════════════════════════════
    CONSTANTS & STATE
 ═══════════════════════════════════════════════════ */
-const MONTHS    = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const QUICK     = ['👟 Shoe cleaning','👕 Laundry','🍳 Cooking','🛒 Grocery shopping','🧹 Room cleaning','👔 Iron clothes','🥘 Meal prep','💊 Take medicine'];
-const STUDY_CATS= ['Resume/CV','Skills','Interview prep','Networking','Job search','Online course','Portfolio'];
-const JUNK_CFG  = {
+const MONTHS   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAY_NAMES= ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const QUICK    = ['👟 Shoe cleaning','👕 Laundry','🍳 Cooking','🛒 Grocery shopping','🧹 Room cleaning','👔 Iron clothes','🥘 Meal prep','💊 Take medicine'];
+const STUDY_CATS=['Resume/CV','Skills','Interview prep','Networking','Job search','Online course','Portfolio'];
+const JUNK_CFG = {
   burger:{label:'🍔 Burger',limit:1,note:'Grilled · no fries'},
   pizza: {label:'🍕 Pizza', limit:1,note:'2 thin slices · veg/chicken'},
   samosa:{label:'🥟 Samosa',limit:2,note:'Before 6 pm'},
@@ -770,10 +837,10 @@ const JUNK_CFG  = {
 
 let curJunkMonth = new Date().getMonth(), curJunkYear = new Date().getFullYear();
 let curBiryMonth = new Date().getMonth(), curBiryYear = new Date().getFullYear();
-let selStudyCat = '', editingHabitId = null, settingsFilter = 'all';
-let selectedDays = [0,1,2,3,4,5,6];
-let firedToday = {};
-let inAppTimeout = null;
+let selStudyCat='', editingHabitId=null, settingsFilter='all';
+let selectedDays=[0,1,2,3,4,5,6];
+let firedToday={};
+let inAppTimeout=null;
 
 /* ═══════════════════════════════════════════════════
    UTILS
@@ -807,19 +874,77 @@ function updateGreeting(){
 }
 
 /* ═══════════════════════════════════════════════════
-   IN-APP NOTIFICATION (inline — pushes content down)
+   IN-APP NOTIFICATION (inline banner)
 ═══════════════════════════════════════════════════ */
-function showInAppNotif(icon, title, msg){
-  document.getElementById('inapp-icon').textContent  = icon;
+function showInAppNotif(icon,title,msg){
+  document.getElementById('inapp-icon').textContent = icon;
   document.getElementById('inapp-title').textContent = title;
-  document.getElementById('inapp-msg').textContent   = msg || '';
-  const el = document.getElementById('inapp-notif');
+  document.getElementById('inapp-msg').textContent  = msg||'';
+  const el=document.getElementById('inapp-notif');
   el.classList.add('show');
   clearTimeout(inAppTimeout);
-  inAppTimeout = setTimeout(closeInApp, 7000);
+  inAppTimeout=setTimeout(closeInApp,7000);
 }
-function closeInApp(){
-  document.getElementById('inapp-notif').classList.remove('show');
+function closeInApp(){ document.getElementById('inapp-notif').classList.remove('show'); }
+
+/* ═══════════════════════════════════════════════════
+   HOME REMINDERS PANEL
+═══════════════════════════════════════════════════ */
+function renderHomeReminders(){
+  const list  = document.getElementById('home-rem-list');
+  const count = document.getElementById('home-rem-count');
+  if(!list) return;
+
+  const now    = new Date();
+  const curH   = now.getHours();
+  const curM   = now.getMinutes();
+  const curMin = curH*60+curM;
+  const today  = now.getDay();
+
+  const active = (state.reminders||[]).filter(r=>r.enabled && r.days.includes(today));
+  count.textContent = active.length;
+
+  list.innerHTML='';
+  if(!active.length){
+    list.innerHTML='<div class="home-rem-empty">No reminders scheduled for today.<br><small>Go to 🔔 Reminders tab to add some.</small></div>';
+    return;
+  }
+
+  // Sort by time
+  const sorted = [...active].sort((a,b)=>a.time.localeCompare(b.time));
+
+  sorted.forEach(r=>{
+    const [hh,mm] = r.time.split(':').map(Number);
+    const remMin  = hh*60+mm;
+    const diff    = remMin - curMin;
+    const h12     = ((hh%12)||12);
+    const timeStr = h12+':'+String(mm).padStart(2,'0')+' '+(hh<12?'AM':'PM');
+
+    let statusCls='upcoming', statusTxt='';
+    if(diff<0){
+      statusCls='done';
+      statusTxt='Done';
+    } else if(diff===0){
+      statusCls='upcoming';
+      statusTxt='Now!';
+    } else if(diff<=60){
+      statusCls='upcoming';
+      statusTxt='In '+diff+'m';
+    } else {
+      statusCls='upcoming';
+      statusTxt=timeStr;
+    }
+
+    const row=document.createElement('div'); row.className='home-rem-item';
+    row.innerHTML=`
+      <div class="home-rem-icon">${r.icon}</div>
+      <div class="home-rem-body">
+        <div class="home-rem-name">${r.title}</div>
+        <div class="home-rem-time">⏰ ${timeStr}${r.msg?' · '+r.msg:''}</div>
+      </div>
+      <span class="home-rem-status ${statusCls}">${statusTxt}</span>`;
+    list.appendChild(row);
+  });
 }
 
 /* ═══════════════════════════════════════════════════
@@ -861,12 +986,11 @@ function requestNotifPermission(){
   });
 }
 
-function fireNotification(title, body, icon){
-  // 1. Always show inline in-app notification
+function fireNotification(title,body,icon){
   showInAppNotif(icon||'🔔', title, body);
-  // 2. OS notification if permitted
+  renderHomeReminders(); // refresh status dots
   if('Notification' in window && Notification.permission==='granted'){
-    try{ new Notification(title,{body:body||'',tag:title}); }catch(e){}
+    try{ new Notification(title,{body:body||'',icon:'/favicon.ico',tag:title}); }catch(e){}
   }
 }
 
@@ -877,19 +1001,20 @@ function checkReminders(){
   const time = h+':'+m;
   const day  = now.getDay();
   const date = todayKey();
+
   (state.reminders||[]).forEach(r=>{
     if(!r.enabled) return;
     if(!r.days.includes(day)) return;
     if(r.time !== time) return;
     const key = r.id+'_'+date+'_'+time;
     if(firedToday[key]) return;
-    firedToday[key] = true;
+    firedToday[key]=true;
     fireNotification(r.title, r.msg, r.icon);
   });
 }
 
 function startReminderEngine(){
-  setInterval(checkReminders, 30000);
+  setInterval(()=>{ checkReminders(); renderHomeReminders(); }, 30000);
   checkReminders();
 }
 
@@ -904,7 +1029,7 @@ function buildDaysPicker(){
     btn.className='day-btn'+(selectedDays.includes(i)?' sel':'');
     btn.textContent=d; btn.type='button';
     btn.onclick=()=>{
-      selectedDays = selectedDays.includes(i) ? selectedDays.filter(x=>x!==i) : [...selectedDays,i];
+      selectedDays=selectedDays.includes(i)?selectedDays.filter(x=>x!==i):[...selectedDays,i];
       buildDaysPicker();
     };
     w.appendChild(btn);
@@ -918,12 +1043,11 @@ function buildPresetChips(){
     const c=document.createElement('div'); c.className='preset-chip';
     c.textContent=p.icon+' '+p.title.replace(/ [^\s]+$/,'');
     c.onclick=()=>{
-      document.getElementById('r-title').value = p.title;
-      document.getElementById('r-msg').value   = p.msg;
-      document.getElementById('r-time').value  = p.time;
-      document.getElementById('r-icon').value  = p.icon;
-      selectedDays = [...p.days];
-      buildDaysPicker();
+      document.getElementById('r-title').value=p.title;
+      document.getElementById('r-msg').value=p.msg;
+      document.getElementById('r-time').value=p.time;
+      document.getElementById('r-icon').value=p.icon;
+      selectedDays=[...p.days]; buildDaysPicker();
       showToast('✅ Preset loaded — tap Set Reminder');
     };
     w.appendChild(c);
@@ -942,16 +1066,13 @@ function renderReminderList(){
     e.textContent='No reminders yet. Add one below or pick a preset.';
     list.appendChild(e); return;
   }
-
   reminders.forEach((r,i)=>{
     const row=document.createElement('div'); row.className='reminder-item';
-    const allDays  = r.days.length===7;
-    const weekdays = [1,2,3,4,5];
-    const isWD     = weekdays.every(d=>r.days.includes(d)) && r.days.length===5;
-    const daysLabel= allDays?'Every day': isWD?'Weekdays': r.days.sort((a,b)=>a-b).map(d=>DAY_NAMES[d]).join(', ');
+    const allDays=r.days.length===7;
+    const isWD=[1,2,3,4,5].every(d=>r.days.includes(d))&&r.days.length===5;
+    const daysLabel=allDays?'Every day':isWD?'Weekdays':r.days.sort((a,b)=>a-b).map(d=>DAY_NAMES[d]).join(', ');
     const hh=+r.time.split(':')[0], mm=r.time.split(':')[1];
     const timeLabel=((hh%12)||12)+':'+mm+' '+(hh<12?'AM':'PM');
-
     row.innerHTML=`
       <div class="reminder-icon-box">${r.icon}</div>
       <div class="reminder-body">
@@ -969,12 +1090,14 @@ function renderReminderList(){
 }
 
 function toggleReminder(i,val){
-  state.reminders[i].enabled=val; save(); renderReminderList();
+  state.reminders[i].enabled=val; save();
+  renderReminderList(); renderHomeReminders();
   showToast(val?'🔔 Reminder enabled':'🔕 Reminder paused');
 }
 function deleteReminder(i){
   if(!confirm('Delete this reminder?')) return;
-  state.reminders.splice(i,1); save(); renderReminderList();
+  state.reminders.splice(i,1); save();
+  renderReminderList(); renderHomeReminders();
   showToast('🗑 Reminder deleted');
 }
 function addReminder(){
@@ -986,7 +1109,7 @@ function addReminder(){
   if(!time) { showToast('⚠️ Pick a time'); return; }
   if(!selectedDays.length){ showToast('⚠️ Select at least one day'); return; }
   state.reminders.push({id:genId(),title,msg,time,icon,days:[...selectedDays],enabled:true});
-  save(); renderReminderList();
+  save(); renderReminderList(); renderHomeReminders();
   document.getElementById('r-title').value='';
   document.getElementById('r-msg').value='';
   document.getElementById('r-time').value='08:00';
@@ -1000,20 +1123,19 @@ function addReminder(){
    BADGES & LEVELS
 ═══════════════════════════════════════════════════ */
 const BADGES=[
-  {id:'first_step', icon:'👣',name:'First Step',    desc:'Complete your first task',          condition:s=>s.totalPts>=3},
-  {id:'early_bird', icon:'🐦',name:'Early Bird',    desc:'Complete full morning routine',     condition:s=>['lemon','almonds','walnuts','amla'].every(k=>s.checks[k])},
-  {id:'skin_care',  icon:'✨',name:'Glow Up',       desc:'Complete skin care routine',        condition:s=>['facewash_am','moisturizer','sunscreen'].every(k=>s.checks[k])},
-  {id:'hydrated',   icon:'💧',name:'Pool Master',   desc:'Fill the water pool!',              condition:s=>s.water>=11},
-  {id:'streak3',    icon:'🔥',name:'3-Day Streak',  desc:'Study 3 days in a row',            condition:s=>s.studyStreak>=3},
-  {id:'streak7',    icon:'💪',name:'Week Warrior',  desc:'Study 7 days in a row',            condition:s=>s.studyStreak>=7},
-  {id:'streak14',   icon:'🚀',name:'Fortnight Fire',desc:'Study 14 days in a row',           condition:s=>s.studyStreak>=14},
-  {id:'streak30',   icon:'🏆',name:'Monthly Legend',desc:'Study 30 days in a row',           condition:s=>s.studyStreak>=30},
-  {id:'pts100',     icon:'⭐',name:'Century',       desc:'Earn 100 total points',             condition:s=>s.totalPts>=100},
-  {id:'pts500',     icon:'🌟',name:'500 Club',      desc:'Earn 500 total points',             condition:s=>s.totalPts>=500},
-  {id:'eng_reader', icon:'📖',name:'English Reader',desc:'Save 5 English entries',           condition:s=>(s.eng||[]).length>=5},
+  {id:'first_step', icon:'👣',name:'First Step',   desc:'Complete your first task',         condition:s=>s.totalPts>=3},
+  {id:'early_bird', icon:'🐦',name:'Early Bird',   desc:'Complete full morning routine',    condition:s=>['lemon','almonds','walnuts','amla'].every(k=>s.checks[k])},
+  {id:'skin_care',  icon:'✨',name:'Glow Up',       desc:'Complete skin care routine',       condition:s=>['facewash_am','moisturizer','sunscreen'].every(k=>s.checks[k])},
+  {id:'hydrated',   icon:'💧',name:'Pool Master',  desc:'Fill the water pool!',             condition:s=>s.water>=11},
+  {id:'streak3',    icon:'🔥',name:'3-Day Streak', desc:'Study 3 days in a row',            condition:s=>s.studyStreak>=3},
+  {id:'streak7',    icon:'💪',name:'Week Warrior', desc:'Study 7 days in a row',            condition:s=>s.studyStreak>=7},
+  {id:'streak14',   icon:'🚀',name:'Fortnight Fire',desc:'Study 14 days in a row',          condition:s=>s.studyStreak>=14},
+  {id:'streak30',   icon:'🏆',name:'Monthly Legend',desc:'Study 30 days in a row',          condition:s=>s.studyStreak>=30},
+  {id:'pts100',     icon:'⭐',name:'Century',       desc:'Earn 100 total points',            condition:s=>s.totalPts>=100},
+  {id:'pts500',     icon:'🌟',name:'500 Club',      desc:'Earn 500 total points',            condition:s=>s.totalPts>=500},
+  {id:'eng_reader', icon:'📖',name:'English Reader',desc:'Save 5 English entries',          condition:s=>(s.eng||[]).length>=5},
   {id:'night_owl',  icon:'🌃',name:'Night Owl',     desc:'Complete full night routine',      condition:s=>['facewash_pm','hair_tablets','revision','sleep'].every(k=>s.checks[k])},
 ];
-
 const LEVELS=[
   {min:0,   label:'🌱 Beginner',  next:50},
   {min:50,  label:'🌿 Growing',   next:150},
@@ -1023,12 +1145,9 @@ const LEVELS=[
   {min:800, label:'🚀 Elite',     next:1200},
   {min:1200,label:'🏆 Legend',    next:9999},
 ];
-
 function getLevel(pts){ for(let i=LEVELS.length-1;i>=0;i--){ if(pts>=LEVELS[i].min) return LEVELS[i]; } return LEVELS[0]; }
-
 function updateReward(){
-  const pts=state.totalPts||0;
-  const lv=getLevel(pts);
+  const pts=state.totalPts||0, lv=getLevel(pts);
   const range=lv.next-lv.min;
   const progress=range>0?Math.min(100,Math.round((pts-lv.min)/range*100)):100;
   document.getElementById('level-bar-fill').style.width=progress+'%';
@@ -1038,7 +1157,6 @@ function updateReward(){
   document.getElementById('reward-msg').textContent=msgs[Math.min(4,Math.floor(progress/25))];
   checkBadges();
 }
-
 function checkBadges(){
   BADGES.forEach(b=>{
     if(!state.earnedBadges.includes(b.id)){
@@ -1046,7 +1164,6 @@ function checkBadges(){
     }
   });
 }
-
 function openBadges(){
   const grid=document.getElementById('badge-grid'); grid.innerHTML='';
   BADGES.forEach(b=>{
@@ -1088,39 +1205,305 @@ function buildTodaySections(){
   });
 }
 
+/* ═══════════════════════════════════════════════════
+   WATER POOL — UPGRADED SWIMMER ANIMATION
+═══════════════════════════════════════════════════ */
+let swimAnimFrame=null;
+let swimX=0, swimDir=1, swimY=0;
+let lastWaterLevel=0;
+
 function buildWaterSection(){
   const sc=document.createElement('div'); sc.className='sc';
   sc.innerHTML=`
     <div class="sh"><span class="si">💧</span><span class="st">Water</span><span class="stag">11 × 300ml = 3.3L</span></div>
     <div class="pool-wrap">
-      <div class="pool-container">
-        <div class="pool-sky"></div>
-        <div class="pool-water" id="pool-water" style="height:0%"><div class="pool-tiles"></div></div>
-        <div class="pool-person" id="pool-person">🧍</div>
-        <div class="pool-pct-label" id="pool-pct"></div>
-        <div class="pool-done-msg" id="pool-done"><div class="big">🎉</div><div class="small">Pool Full!</div></div>
+
+      <div class="pool-outer" id="pool-outer">
+        <!-- Sky with animated clouds -->
+        <div class="pool-sky">
+          <div class="cloud cloud1"></div>
+          <div class="cloud cloud2"></div>
+        </div>
+
+        <!-- Water body (grows upward) -->
+        <div class="pool-water-body" id="pool-water-body" style="height:0%">
+          <div class="pool-water-gradient"></div>
+          <div class="pool-tiles-v"></div>
+          <!-- Lane lines inside water -->
+          <div class="pool-lanes" id="pool-lanes"></div>
+          <!-- Wave surface -->
+          <div class="pool-wave-wrap">
+            <div class="pool-wave"></div>
+            <div class="pool-wave2"></div>
+          </div>
+        </div>
+
+        <!-- Pool coping (top edge) -->
+        <div class="pool-edge"></div>
+
+        <!-- % badge -->
+        <div class="pool-pct-badge" id="pool-pct-badge" style="display:none;">0%</div>
+
+        <!-- Swimmer -->
+        <div class="swimmer-wrap" id="swimmer-wrap" style="left:10%;bottom:0;">
+          <canvas class="swimmer-svg" id="swimmer-canvas" width="48" height="52"></canvas>
+        </div>
+
+        <!-- Empty state -->
+        <div class="pool-empty-msg" id="pool-empty-msg">
+          <div class="em-icon">💧</div>
+          <div class="em-text">Log water to fill the pool!</div>
+        </div>
+
+        <!-- Full state overlay -->
+        <div class="pool-done-overlay" id="pool-done-overlay">
+          <div class="done-big">🏊</div>
+          <div class="done-text">Pool Full! Great job! 🎉</div>
+        </div>
       </div>
+
       <div class="wgs" id="wgs"></div>
       <div class="wstat"><span id="wml">0ml / 3300ml</span><span class="wpill" id="wpill">start drinking</span></div>
     </div>`;
-  setTimeout(()=>{ buildWaterGlasses(); renderWater(); },0);
+  setTimeout(()=>{ buildWaterGlasses(); renderWater(); startSwimAnimation(); }, 50);
   return sc;
 }
 
-function buildEveningSection(){
-  const sc=document.createElement('div'); sc.className='sc';
-  const weekend=isWeekend();
-  const tagStyle=weekend?'style="background:#FEF3C7;border-color:#FDE68A;color:#92400E;"':'';
-  sc.innerHTML=`<div class="sh"><span class="si">🌇</span><span class="st">Evening</span><span class="stag" ${tagStyle}>${weekend?'Weekend 🏃':'before 6 pm'}</span></div><div class="cl" id="eve-list"></div>`;
-  setTimeout(()=>{
-    const list=document.getElementById('eve-list'); if(!list) return;
-    list.innerHTML=weekend
-      ?`<div class="ci" data-key="steps" data-pts="8" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">10,000 steps today</div><div class="cin">Weekend challenge!</div></div></div>
-         <div class="ci" data-key="seeds" data-pts="3" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Fruit or seeds</div><div class="cin">1 spoon pumpkin / flax / chia</div></div></div>`
-      :`<div class="ci" data-key="seeds" data-pts="3" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Fruit or seeds</div><div class="cin">1 spoon pumpkin / flax / chia</div></div></div>`;
-    applyChecks();
-  },0);
-  return sc;
+/* Draw swimmer frame on canvas */
+function drawSwimmer(ctx, w, h, frame, pct){
+  ctx.clearRect(0,0,w,h);
+
+  if(pct===0){
+    // Standing on pool deck
+    ctx.save();
+    // Body
+    ctx.fillStyle='#F4A261';
+    ctx.beginPath(); ctx.ellipse(w/2,14,6,7,0,0,Math.PI*2); ctx.fill(); // head
+    ctx.fillStyle='#2176AE';
+    ctx.fillRect(w/2-5,22,10,14); // torso
+    ctx.fillStyle='#F4A261';
+    // Arms down
+    ctx.fillRect(w/2-9,22,4,10);
+    ctx.fillRect(w/2+5,22,4,10);
+    // Legs
+    ctx.fillStyle='#1a1a2e';
+    ctx.fillRect(w/2-5,36,4,12);
+    ctx.fillRect(w/2+1,36,4,12);
+    ctx.restore();
+    return;
+  }
+
+  // Swimming pose — oscillates with frame
+  const bob = Math.sin(frame*0.15)*2;
+  const armAngle = Math.sin(frame*0.2);
+
+  ctx.save();
+  ctx.translate(w/2, h/2 + bob);
+
+  // Body (horizontal)
+  ctx.fillStyle='#2176AE';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 14, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Head
+  ctx.fillStyle='#F4A261';
+  ctx.beginPath();
+  ctx.ellipse(16, -2, 7, 6, -0.2, 0, Math.PI*2);
+  ctx.fill();
+  // swim cap
+  ctx.fillStyle='#E63946';
+  ctx.beginPath();
+  ctx.ellipse(16,-4,7,4,-0.2,0,Math.PI);
+  ctx.fill();
+  // goggles
+  ctx.fillStyle='rgba(0,0,0,0.6)';
+  ctx.beginPath(); ctx.ellipse(20,-2,3,2.5,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#87CEEB';
+  ctx.beginPath(); ctx.ellipse(20,-2,2,1.5,0,0,Math.PI*2); ctx.fill();
+
+  // Arms stroking
+  ctx.strokeStyle='#F4A261'; ctx.lineWidth=3; ctx.lineCap='round';
+  // Right arm (front stroke)
+  ctx.beginPath();
+  ctx.moveTo(4, -3);
+  ctx.quadraticCurveTo(18+armAngle*8, -14-Math.abs(armAngle)*6, 22, -2);
+  ctx.stroke();
+  // Left arm (recovery)
+  ctx.beginPath();
+  ctx.moveTo(-2, 3);
+  ctx.quadraticCurveTo(-10-armAngle*4, 10+Math.abs(armAngle)*4, -14, 2);
+  ctx.stroke();
+
+  // Legs kicking
+  const kick = Math.sin(frame*0.25);
+  ctx.strokeStyle='#1a1a2e'; ctx.lineWidth=3.5;
+  ctx.beginPath();
+  ctx.moveTo(-12, 0);
+  ctx.lineTo(-22, -4+kick*5);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-12, 2);
+  ctx.lineTo(-22, 6-kick*5);
+  ctx.stroke();
+  // Feet
+  ctx.strokeStyle='#F4A261'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(-22,-4+kick*5); ctx.lineTo(-26,-2+kick*5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-22,6-kick*5); ctx.lineTo(-26,8-kick*5); ctx.stroke();
+
+  // Splash dots near head
+  if(pct>0){
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    const t=frame*0.3;
+    [[18,-8],[22,-6],[20,-10]].forEach(([sx,sy],idx)=>{
+      const s=0.5+0.5*Math.sin(t+idx*1.2);
+      ctx.beginPath(); ctx.arc(sx,sy,1.5*s,0,Math.PI*2); ctx.fill();
+    });
+  }
+
+  ctx.restore();
+}
+
+function buildLaneLines(){
+  const lanes=document.getElementById('pool-lanes'); if(!lanes) return;
+  lanes.innerHTML='';
+  for(let i=1;i<4;i++){
+    const l=document.createElement('div'); l.className='lane-line'; l.style.top=(i*25)+'%'; lanes.appendChild(l);
+  }
+}
+
+function startSwimAnimation(){
+  if(swimAnimFrame) cancelAnimationFrame(swimAnimFrame);
+  buildLaneLines();
+  let frame=0;
+  function tick(){
+    const canvas=document.getElementById('swimmer-canvas');
+    const wrap  =document.getElementById('swimmer-wrap');
+    const outer =document.getElementById('pool-outer');
+    if(!canvas||!wrap||!outer){ swimAnimFrame=requestAnimationFrame(tick); return; }
+
+    const pct=Math.round((state.water||0)/11*100);
+    const ctx=canvas.getContext('2d');
+    drawSwimmer(ctx, canvas.width, canvas.height, frame, pct);
+
+    if(pct>0){
+      // Swimmer moves horizontally, bouncing wall to wall
+      const outerW=outer.offsetWidth||300;
+      const swimW=canvas.width;
+      const maxX=outerW-swimW-20;
+      const speed=pct>=100?2.5:pct>=50?1.8:1.0;
+
+      swimX+=swimDir*speed;
+      if(swimX>=maxX){ swimX=maxX; swimDir=-1; addSplash(outer,swimX,pct); }
+      if(swimX<=10)  { swimX=10;   swimDir=1;  addSplash(outer,swimX,pct); }
+
+      // Swimmer bobs up and down based on water fill
+      const waterBodyH = outer.offsetHeight * (pct/100);
+      const swimBottom = Math.max(8, waterBodyH*0.3 - canvas.height/2);
+      const bobOffset  = Math.sin(frame*0.12)*3;
+
+      wrap.style.left   = swimX+'px';
+      wrap.style.bottom = (swimBottom+bobOffset)+'px';
+      wrap.style.display='block';
+
+      // Flip canvas when going left
+      canvas.style.transform = swimDir<0?'scaleX(-1)':'scaleX(1)';
+    } else {
+      // Standing on deck
+      wrap.style.left   = '50%';
+      wrap.style.bottom = '0px';
+      wrap.style.transform='translateX(-50%)';
+      canvas.style.transform='scaleX(1)';
+    }
+
+    // Add random bubbles while swimming
+    if(pct>0 && frame%18===0) addBubble(outer, pct);
+
+    frame++;
+    swimAnimFrame=requestAnimationFrame(tick);
+  }
+  swimAnimFrame=requestAnimationFrame(tick);
+}
+
+function addSplash(container, x, pct){
+  if(pct<10) return;
+  const s=document.createElement('div'); s.className='splash';
+  const size=16+Math.random()*12;
+  const waterBodyH=container.offsetHeight*(pct/100);
+  s.style.cssText=`width:${size}px;height:${size}px;left:${x+10}px;bottom:${waterBodyH*0.28}px;`;
+  container.appendChild(s);
+  setTimeout(()=>s.remove(),700);
+}
+
+function addBubble(container, pct){
+  const b=document.createElement('div'); b.className='bubble';
+  const size=3+Math.random()*5;
+  const waterBodyH=container.offsetHeight*(pct/100);
+  const bx=swimX+Math.random()*40;
+  const by=Math.random()*waterBodyH*0.5;
+  const dur=(1+Math.random()*1.5)+'s';
+  b.style.cssText=`width:${size}px;height:${size}px;left:${bx}px;bottom:${by}px;animation-duration:${dur};`;
+  container.appendChild(b);
+  setTimeout(()=>b.remove(),2000);
+}
+
+function buildWaterGlasses(){
+  const w=document.getElementById('wgs'); if(!w) return; w.innerHTML='';
+  for(let i=0;i<11;i++){
+    const g=document.createElement('div');
+    g.className='wg'+(i===10?' last':'');
+    g.textContent='💧'; g.dataset.i=i;
+    g.onclick=function(){
+      const idx=+this.dataset.i;
+      const wasFull=this.classList.contains('low')||this.classList.contains('good')||this.classList.contains('full');
+      state.water=wasFull?idx:idx+1;
+      renderWater(); save();
+    };
+    w.appendChild(g);
+  }
+}
+
+function renderWater(){
+  const wv=state.water||0, pct=Math.round(wv/11*100);
+
+  // Update glass colours
+  document.querySelectorAll('.wg').forEach((el,j)=>{
+    el.classList.remove('low','good','full');
+    if(j<wv){
+      if(pct<=50)       el.classList.add('low');
+      else if(pct<100)  el.classList.add('good');
+      else              el.classList.add('full');
+    }
+  });
+
+  // Water body height
+  const wb=document.getElementById('pool-water-body');
+  if(wb) wb.style.height=pct+'%';
+
+  // % badge
+  const pb=document.getElementById('pool-pct-badge');
+  if(pb){ pb.style.display=pct>0&&pct<100?'block':'none'; pb.textContent=pct+'%'; }
+
+  // Empty message
+  const em=document.getElementById('pool-empty-msg');
+  if(em) em.style.opacity=wv===0?'1':'0';
+
+  // Done overlay
+  const doneOv=document.getElementById('pool-done-overlay');
+  if(doneOv) doneOv.style.display=pct>=100?'flex':'none';
+
+  // Stats
+  const wml=document.getElementById('wml');
+  if(wml) wml.textContent=(wv*300)+'ml / 3300ml';
+
+  const pill=document.getElementById('wpill');
+  if(pill){
+    pill.className='wpill';
+    if(wv===0)      pill.textContent='start drinking';
+    else if(pct<=50){ pill.classList.add('low');  pill.textContent='drink more'; }
+    else if(pct<100){ pill.classList.add('good'); pill.textContent='good progress'; }
+    else            { pill.classList.add('done'); pill.textContent='pool full! 🎉'; }
+  }
 }
 
 /* ═══════════════════════════════════════════════════
@@ -1146,47 +1529,22 @@ function updateProg(){
 }
 
 /* ═══════════════════════════════════════════════════
-   WATER POOL
+   EVENING SECTION
 ═══════════════════════════════════════════════════ */
-function buildWaterGlasses(){
-  const w=document.getElementById('wgs'); if(!w) return; w.innerHTML='';
-  for(let i=0;i<11;i++){
-    const g=document.createElement('div'); g.className='wg'+(i===10?' last':'');
-    g.textContent='💧'; g.dataset.i=i;
-    g.onclick=function(){
-      const idx=+this.dataset.i;
-      state.water=(this.classList.contains('low')||this.classList.contains('good')||this.classList.contains('full'))?idx:idx+1;
-      renderWater(); save();
-    };
-    w.appendChild(g);
-  }
-}
-function renderWater(){
-  const wv=state.water||0, pct=Math.round(wv/11*100);
-  document.querySelectorAll('.wg').forEach((el,j)=>{
-    el.classList.remove('low','good','full');
-    if(j<wv){ if(pct<=50)el.classList.add('low'); else if(pct<100)el.classList.add('good'); else el.classList.add('full'); }
-  });
-  const pw=document.getElementById('pool-water');
-  const pp=document.getElementById('pool-person');
-  const ppct=document.getElementById('pool-pct');
-  const pdone=document.getElementById('pool-done');
-  if(pw) pw.style.height=pct+'%';
-  if(ppct){ ppct.style.display=pct>10&&pct<100?'block':'none'; ppct.textContent=pct+'%'; }
-  if(pdone) pdone.style.display=pct>=100?'flex':'none';
-  if(pp){
-    if(pct<=0){ pp.textContent='🧍'; pp.style.bottom='0px'; }
-    else if(pct<100){ pp.textContent='🏊'; pp.style.bottom=pct+'%'; }
-    else{ pp.textContent='🎉'; pp.style.bottom='45%'; }
-  }
-  const wml=document.getElementById('wml'); if(wml) wml.textContent=(wv*300)+'ml / 3300ml';
-  const pill=document.getElementById('wpill'); if(pill){
-    pill.className='wpill';
-    if(wv===0)       pill.textContent='start drinking';
-    else if(pct<=50){ pill.classList.add('low');  pill.textContent='drink more'; }
-    else if(pct<100){ pill.classList.add('good'); pill.textContent='good progress'; }
-    else{             pill.classList.add('done'); pill.textContent='pool full! 🎉'; }
-  }
+function buildEveningSection(){
+  const sc=document.createElement('div'); sc.className='sc';
+  const weekend=isWeekend();
+  const tagStyle=weekend?'style="background:#FEF3C7;border-color:#FDE68A;color:#92400E;"':'';
+  sc.innerHTML=`<div class="sh"><span class="si">🌇</span><span class="st">Evening</span><span class="stag" ${tagStyle}>${weekend?'Weekend 🏃':'before 6 pm'}</span></div><div class="cl" id="eve-list"></div>`;
+  setTimeout(()=>{
+    const list=document.getElementById('eve-list'); if(!list) return;
+    list.innerHTML=weekend
+      ?`<div class="ci" data-key="steps" data-pts="8" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">10,000 steps today</div><div class="cin">Weekend challenge!</div></div></div>
+         <div class="ci" data-key="seeds" data-pts="3" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Fruit or seeds</div><div class="cin">1 spoon pumpkin / flax / chia</div></div></div>`
+      :`<div class="ci" data-key="seeds" data-pts="3" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Fruit or seeds</div><div class="cin">1 spoon pumpkin / flax / chia</div></div></div>`;
+    applyChecks();
+  },0);
+  return sc;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -1197,16 +1555,13 @@ function updateStreakHero(){
   const msgs=['Start studying to build your streak!','Good start! Keep going 💪','Great — '+s+' days strong 🔥','Unstoppable 🚀','Legend! '+s+' day streak 🏆'];
   const msgIdx=s===0?0:s<3?1:s<7?2:s<14?3:4;
   const fires=['🌱','🌱','💪','🔥','🏆'];
-
-  const el=document.getElementById('home-streak-num');    if(el) el.textContent=s;
-  const fi=document.getElementById('home-streak-fire');   if(fi) fi.textContent=fires[Math.min(4,msgIdx)];
-  const sb=document.getElementById('home-streak-sub');    if(sb) sb.textContent=msgs[msgIdx];
-  const sv=document.getElementById('study-streak-val');   if(sv) sv.textContent=s;
-  const sm=document.getElementById('study-streak-msg');   if(sm) sm.textContent=msgs[msgIdx];
-
+  const el=document.getElementById('home-streak-num'); if(el) el.textContent=s;
+  const fi=document.getElementById('home-streak-fire'); if(fi) fi.textContent=fires[Math.min(4,msgIdx)];
+  const sb=document.getElementById('home-streak-sub');  if(sb) sb.textContent=msgs[msgIdx];
+  const sv=document.getElementById('study-streak-val'); if(sv) sv.textContent=s;
+  const sm=document.getElementById('study-streak-msg'); if(sm) sm.textContent=msgs[msgIdx];
   const hd=document.getElementById('home-streak-dots');
   if(hd){ hd.innerHTML=''; for(let i=0;i<14;i++){ const d=document.createElement('div'); d.className='sd'+(i<Math.min(s,14)?' lit':''); hd.appendChild(d); } }
-
   const sd=document.getElementById('study-streak-dots');
   if(sd){
     sd.innerHTML='';
@@ -1225,7 +1580,6 @@ function buildSettingsPage(){
   buildSettingsSectionsList();
   populateSectionSelects();
 }
-
 function buildSectionLabels(){
   const w=document.getElementById('settings-section-labels'); if(!w) return;
   w.innerHTML='';
@@ -1238,7 +1592,6 @@ function buildSectionLabels(){
     btn.onclick=()=>{settingsFilter=sec.id;buildSettingsPage();}; w.appendChild(btn);
   });
 }
-
 function buildSettingsHabitList(){
   const w=document.getElementById('settings-habit-list'); if(!w) return; w.innerHTML='';
   const filtered=state.habits.filter(h=>settingsFilter==='all'||h.section===settingsFilter);
@@ -1257,7 +1610,6 @@ function buildSettingsHabitList(){
     w.appendChild(list);
   });
 }
-
 function buildSettingsSectionsList(){
   const w=document.getElementById('settings-sections-list'); if(!w) return; w.innerHTML='';
   state.sections.forEach(sec=>{
@@ -1267,7 +1619,6 @@ function buildSettingsSectionsList(){
     w.appendChild(row);
   });
 }
-
 function populateSectionSelects(){
   ['new-habit-section','edit-habit-section'].forEach(id=>{
     const sel=document.getElementById(id); if(!sel) return; sel.innerHTML='';
@@ -1277,7 +1628,6 @@ function populateSectionSelects(){
     });
   });
 }
-
 function addNewHabit(){
   const name=document.getElementById('new-habit-name').value.trim(); if(!name){showToast('⚠️ Enter a habit name');return;}
   const note=document.getElementById('new-habit-note').value.trim();
@@ -1355,7 +1705,7 @@ function addTmr(){ const inp=document.getElementById('tmr-input'); addTmrText(in
 function addHour(delta){
   state.studyHrs=Math.max(0,Math.min(4,(state.studyHrs||0)+delta));
   if(state.studyHrs>=4&&!state.checks['study1']){ state.checks['study1']=true; state.pts+=10; state.totalPts=(state.totalPts||0)+10; applyChecks(); updateProg(); updateReward(); }
-  if(state.studyHrs<4&&state.checks['study1']){ state.checks['study1']=false; state.pts=Math.max(0,state.pts-10); applyChecks(); updateProg(); updateReward(); }
+  if(state.studyHrs<4&&state.checks['study1'])  { state.checks['study1']=false; state.pts=Math.max(0,state.pts-10); applyChecks(); updateProg(); updateReward(); }
   updateStudyHrsBar(); checkStudyStreakUpdate(); save();
 }
 function updateStudyHrsBar(){
@@ -1415,13 +1765,21 @@ function renderJunk(){
   document.getElementById('junk-month').textContent=MONTHS[curJunkMonth]+' '+curJunkYear;
   const data=getJunk(curJunkYear,curJunkMonth), total=data.burger+data.pizza+data.samosa;
   const cards=document.getElementById('jcards'); cards.innerHTML='';
-  Object.keys(JUNK_CFG).forEach(type=>{ const cfg=JUNK_CFG[type],count=data[type]; const oi=count>=cfg.limit,ot=total>=3; const card=document.createElement('div'); card.className='jcard'+(oi||ot?' danger':count>0?' warn':''); const dots=[]; for(let i=0;i<Math.max(cfg.limit,count);i++) dots.push(`<div class="jdot${i<count?' filled':''}" onclick="toggleJunk('${type}',${i})"></div>`); if(count<cfg.limit&&!ot) dots.push(`<div class="jdot add" onclick="addJunk('${type}')"></div>`); card.innerHTML=`<div class="jcrow"><span class="jcname">${cfg.label}</span><div class="jdots">${dots.join('')}</div></div><div class="jcnote">${cfg.note}</div>`; cards.appendChild(card); });
-  const tot=document.getElementById('jtotal'); tot.className='jtotal'+(total>=3?' danger':''); tot.innerHTML=total>=3?'<strong>🔴 Limit reached</strong>':'Total: <strong>'+total+' / 3</strong> · '+(3-total)+' remaining '+(3-total===1?'🟡':'🟢');
+  Object.keys(JUNK_CFG).forEach(type=>{
+    const cfg=JUNK_CFG[type],count=data[type];
+    const oi=count>=cfg.limit,ot=total>=3;
+    const card=document.createElement('div'); card.className='jcard'+(oi||ot?' danger':count>0?' warn':'');
+    const dots=[]; for(let i=0;i<Math.max(cfg.limit,count);i++) dots.push(`<div class="jdot${i<count?' filled':''}" onclick="toggleJunk('${type}',${i})"></div>`);
+    if(count<cfg.limit&&!ot) dots.push(`<div class="jdot add" onclick="addJunk('${type}')"></div>`);
+    card.innerHTML=`<div class="jcrow"><span class="jcname">${cfg.label}</span><div class="jdots">${dots.join('')}</div></div><div class="jcnote">${cfg.note}</div>`;
+    cards.appendChild(card);
+  });
+  const tot=document.getElementById('jtotal'); tot.className='jtotal'+(total>=3?' danger':'');
+  tot.innerHTML=total>=3?'<strong>🔴 Limit reached</strong>':'Total: <strong>'+total+' / 3</strong> · '+(3-total)+' remaining '+(3-total===1?'🟡':'🟢');
 }
 function addJunk(type){ const d=getJunk(curJunkYear,curJunkMonth); if(d.burger+d.pizza+d.samosa>=3) return; d[type]++; save(); renderJunk(); }
 function toggleJunk(type,idx){ const d=getJunk(curJunkYear,curJunkMonth); if(idx===d[type]-1&&d[type]>0)d[type]--; else{ if(d.burger+d.pizza+d.samosa<3&&d[type]<JUNK_CFG[type].limit)d[type]++; } save(); renderJunk(); }
 function changeMonth(dir){ curJunkMonth+=dir; if(curJunkMonth>11){curJunkMonth=0;curJunkYear++;} if(curJunkMonth<0){curJunkMonth=11;curJunkYear--;} renderJunk(); }
-
 function getBiry(y,m){ const k=mkey(y,m); if(!state.biry)state.biry={}; if(!state.biry[k])state.biry[k]=0; return state.biry[k]; }
 function setBiry(y,m,v){ const k=mkey(y,m); if(!state.biry)state.biry={}; state.biry[k]=v; }
 function renderBiry(){
@@ -1432,7 +1790,8 @@ function renderBiry(){
   if(count<2) dots.push(`<div class="jdot add" onclick="addBiry()"></div>`);
   card.innerHTML=`<div class="jcrow"><span class="jcname">🍛 Biryani</span><div class="jdots">${dots.join('')}</div></div><div class="jcnote">Max 2/month · Enjoy every bite!</div>`;
   cards.appendChild(card);
-  const tot=document.getElementById('biry-total'); tot.className='jtotal'+(count>=2?' danger':''); tot.innerHTML=count>=2?'<strong>🔴 Biryani quota full! 🍛🍛</strong>':'Eaten: <strong>'+count+' / 2</strong> · '+(2-count)+' remaining '+(count===0?'🟢':'🟡');
+  const tot=document.getElementById('biry-total'); tot.className='jtotal'+(count>=2?' danger':'');
+  tot.innerHTML=count>=2?'<strong>🔴 Biryani quota full! 🍛🍛</strong>':'Eaten: <strong>'+count+' / 2</strong> · '+(2-count)+' remaining '+(count===0?'🟢':'🟡');
 }
 function addBiry(){ const c=getBiry(curBiryYear,curBiryMonth); if(c>=2) return; setBiry(curBiryYear,curBiryMonth,c+1); save(); renderBiry(); }
 function toggleBiry(idx){ const c=getBiry(curBiryYear,curBiryMonth); if(idx===c-1&&c>0)setBiry(curBiryYear,curBiryMonth,c-1); else if(c<2)setBiry(curBiryYear,curBiryMonth,c+1); save(); renderBiry(); }
@@ -1446,9 +1805,17 @@ function confetti(){
     setTimeout(()=>{ const el=document.createElement('div'); el.className='confetti-piece'; el.textContent=e; el.style.cssText=`left:${Math.random()*85}vw;top:${Math.random()*55}vh;`; document.body.appendChild(el); setTimeout(()=>el.remove(),1200); },i*120);
   });
 }
-function resetToday(){ state.checks={}; state.water=0; state.pts=0; state.studyHrs=0; buildTodaySections(); applyChecks(); renderWater(); updateProg(); updateReward(); updateStudyHrsBar(); save(); showToast('♻️ Checklist reset'); }
-function confirmFactoryReset(){ if(confirm('⚠️ Delete ALL data including streaks and badges?')){ localStorage.removeItem(DB_KEY); state=defaultState(); init(); showToast('✅ Factory reset done'); } }
-
+function resetToday(){
+  state.checks={}; state.water=0; state.pts=0; state.studyHrs=0;
+  buildTodaySections(); applyChecks(); renderWater(); updateProg(); updateReward(); updateStudyHrsBar();
+  save(); showToast('♻️ Checklist reset');
+}
+function confirmFactoryReset(){
+  if(confirm('⚠️ Delete ALL data including streaks and badges?')){
+    if(swimAnimFrame) cancelAnimationFrame(swimAnimFrame);
+    localStorage.removeItem(DB_KEY); state=defaultState(); init(); showToast('✅ Factory reset done');
+  }
+}
 function showPage(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
@@ -1470,17 +1837,17 @@ function init(){
 
   document.getElementById('date-chip').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
   updateGreeting();
-  setInterval(updateGreeting, 60000);
+  setInterval(updateGreeting,60000);
 
   buildTodaySections();
   applyChecks();
+  renderHomeReminders();
   buildTmrChips(); renderTmr();
   buildStudyCats(); renderStudyList(); updateStudyHrsBar();
   updateStreakHero();
   renderEngHistory(); updateEngStreak();
   renderJunk(); renderBiry();
   updateProg(); updateReward();
-
   buildDaysPicker();
   buildPresetChips();
   updateNotifStatusUI();
