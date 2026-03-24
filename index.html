@@ -6,23 +6,38 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <title>Sandy's Health Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
 <style>
 :root{
---bg:#F7F5F0;--card:#fff;--text:#1C1917;--muted:#78716C;--border:#E7E5E4;
---green-bg:#ECFDF5;--green:#059669;--green-b:#A7F3D0;
---yellow-bg:#FFFBEB;--yellow:#D97706;--yellow-b:#FDE68A;
---red-bg:#FEF2F2;--red:#DC2626;--red-b:#FECACA;
---blue-bg:#EFF6FF;--blue:#2563EB;--blue-b:#BFDBFE;
---purple-bg:#EEF2FF;--purple:#4F46E5;--purple-b:#C7D2FE;
---accent:#2E7D57;--radius:14px;
+  --bg:#F7F5F0;--card:#fff;--text:#1C1917;--muted:#78716C;--border:#E7E5E4;
+  --green-bg:#ECFDF5;--green:#059669;--green-b:#A7F3D0;
+  --yellow-bg:#FFFBEB;--yellow:#D97706;--yellow-b:#FDE68A;
+  --red-bg:#FEF2F2;--red:#DC2626;--red-b:#FECACA;
+  --blue-bg:#EFF6FF;--blue:#2563EB;--blue-b:#BFDBFE;
+  --purple-bg:#EEF2FF;--purple:#4F46E5;--purple-b:#C7D2FE;
+  --accent:#2E7D57;--radius:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);min-height:100vh;padding-bottom:80px;}
 
-/* HEADER */
+/* Sync Status */
+.sync-status{position:fixed;top:10px;right:10px;z-index:9999;background:rgba(0,0,0,0.8);color:#fff;padding:6px 12px;border-radius:20px;font-size:11px;display:none;align-items:center;gap:5px;}
+.sync-status.show{display:flex;}
+.sync-status.syncing{background:#4F46E5;}
+.sync-status.success{background:#059669;}
+.sync-status.error{background:#DC2626;}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#fff;flex-shrink:0;}
+.sync-dot.pulse{animation:sdpulse 1s infinite;}
+@keyframes sdpulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* Header */
 .header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px 10px;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,0.06);}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.app-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--text);transition:opacity 0.4s;}
+.app-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--text);transition:opacity .4s;}
 .date-chip{font-size:11px;color:var(--muted);background:var(--bg);border-radius:20px;padding:4px 10px;border:1px solid var(--border);display:flex;align-items:center;gap:4px;}
 .date-junk-warn{font-size:13px;animation:pulse 1.5s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
@@ -31,7 +46,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);min
 .prog-fill{height:6px;border-radius:3px;transition:width .4s,background .4s;width:0%;}
 .prog-text{font-size:12px;color:var(--muted);min-width:40px;text-align:right;}
 
-/* REWARD BAR */
+/* Reward Bar */
 .reward-bar-wrap{background:var(--card);border-bottom:1px solid var(--border);padding:10px 16px;}
 .reward-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
 .reward-label{font-size:12px;color:var(--muted);}
@@ -43,11 +58,11 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);min
 .reward-msg{font-size:11px;color:var(--muted);font-style:italic;}
 .badges-btn{font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-family:inherit;}
 
-/* BANNER */
+/* Banner */
 .banner{background:var(--green-bg);border-bottom:1px solid var(--green-b);color:var(--green);font-size:13px;padding:10px 16px;display:none;align-items:center;gap:8px;}
 .banner.show{display:flex;}
 
-/* MISSED TASKS BANNER */
+/* Missed Tasks Banner */
 .missed-banner{background:var(--red-bg);border:1px solid var(--red-b);border-radius:12px;margin:12px 14px 0;padding:12px 14px;display:none;}
 .missed-banner.show{display:block;}
 .missed-banner-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -58,19 +73,19 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);min
 .missed-task-item::before{content:'✗';font-weight:700;}
 .missed-banner-close{font-size:18px;color:var(--red);cursor:pointer;background:none;border:none;line-height:1;flex-shrink:0;}
 
-/* NAV */
+/* Nav */
 nav{display:flex;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:74px;z-index:99;}
 nav::-webkit-scrollbar{display:none;}
 .nb{flex-shrink:0;padding:10px 13px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;}
 .nb.active{color:var(--accent);border-bottom-color:var(--accent);}
 
-/* HOME REMINDERS PANEL */
+/* Home Reminders Panel */
 .home-reminders-panel{margin:14px 14px 0;background:var(--card);border-radius:16px;border:1px solid var(--purple-b);overflow:hidden;box-shadow:0 2px 12px rgba(79,70,229,0.08);}
 .home-rem-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,#EEF2FF,#F5F3FF);border-bottom:1px solid var(--purple-b);}
 .home-rem-title{font-size:14px;font-weight:600;color:var(--purple);display:flex;align-items:center;gap:6px;}
 .home-rem-count{font-size:11px;background:var(--purple);color:#fff;border-radius:20px;padding:2px 8px;}
 .home-rem-list{padding:4px 0;}
-.home-rem-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);transition:background .15s;}
+.home-rem-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);}
 .home-rem-item:last-child{border-bottom:none;}
 .home-rem-icon{font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--purple-bg);flex-shrink:0;}
 .home-rem-body{flex:1;min-width:0;}
@@ -81,7 +96,7 @@ nav::-webkit-scrollbar{display:none;}
 .home-rem-status.done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);}
 .home-rem-empty{padding:14px;font-size:13px;color:var(--muted);text-align:center;}
 
-/* IN-APP NOTIFICATION */
+/* In-app Notification */
 .inapp-notif{display:none;align-items:flex-start;gap:12px;background:var(--card);border:1px solid var(--purple-b);border-left:4px solid var(--purple);border-radius:14px;padding:12px 16px;margin:12px 14px 0;box-shadow:0 4px 16px rgba(79,70,229,0.15);}
 .inapp-notif.show{display:flex;animation:slideDown .4s cubic-bezier(.34,1.56,.64,1);}
 @keyframes slideDown{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
@@ -91,7 +106,7 @@ nav::-webkit-scrollbar{display:none;}
 .inapp-notif-msg{font-size:12px;color:var(--muted);margin-top:2px;}
 .inapp-notif-close{font-size:20px;color:var(--muted);cursor:pointer;background:none;border:none;line-height:1;flex-shrink:0;padding:0 2px;}
 
-/* STREAK HERO */
+/* Streak Hero */
 .streak-hero{background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);margin:14px 14px 0;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:16px;color:#fff;box-shadow:0 4px 20px rgba(79,70,229,0.3);}
 .streak-fire{font-size:42px;line-height:1;}
 .streak-info{flex:1;}
@@ -102,11 +117,11 @@ nav::-webkit-scrollbar{display:none;}
 .sd{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.3);}
 .sd.lit{background:#fff;}
 
-/* PAGES */
+/* Pages */
 .page{display:none;padding:14px;}
 .page.active{display:block;}
 
-/* CARDS */
+/* Cards */
 .sc{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:12px;overflow:hidden;}
 .sh{padding:13px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
 .si{font-size:17px;}
@@ -127,10 +142,9 @@ nav::-webkit-scrollbar{display:none;}
 .cil{font-size:14px;line-height:1.4;color:var(--text);}
 .cin{font-size:12px;color:var(--muted);margin-top:2px;}
 
-/* TASK REORDER BUTTONS */
+/* Reorder Buttons */
 .reorder-btns{display:flex;flex-direction:column;gap:2px;flex-shrink:0;justify-content:center;}
-.reorder-btn{width:22px;height:18px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--muted);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1;}
-.reorder-btn:active{background:var(--border);}
+.reorder-btn{width:22px;height:18px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--muted);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .reorder-btn:disabled{opacity:0.25;cursor:default;}
 
 /* ═══ WATER TRACKER — OCEAN SUBMARINE ═══ */
@@ -200,21 +214,7 @@ nav::-webkit-scrollbar{display:none;}
 .wt-ml-goal{font-size:13px;color:#aaa;}
 .wt-status{font-size:12px;font-weight:600;transition:color .3s;}
 
-
-/* TOMORROW */
-.mnav{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
-.mnb{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:16px;color:var(--muted);display:flex;align-items:center;justify-content:center;}
-.mnlbl{font-size:14px;font-weight:600;color:var(--text);}
-.tchips{padding:10px 16px;display:flex;flex-wrap:wrap;gap:7px;border-bottom:1px solid var(--border);}
-.chip{font-size:12px;padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;transition:all .12s;}
-.chip.used{opacity:0.4;pointer-events:none;}
-.tadd{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);}
-.tinput{flex:1;font-size:14px;font-family:'DM Sans',sans-serif;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);outline:none;}
-.tinput:focus{border-color:var(--accent);}
-.taddbtn{padding:9px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;}
-.tempty{padding:20px 16px;font-size:13px;color:var(--muted);text-align:center;}
-
-/* JUNK — UPGRADED */
+/* Junk tracker */
 .junk-summary-card{background:linear-gradient(135deg,#FEF2F2,#FFFBEB);border:1.5px solid var(--yellow-b);border-radius:14px;padding:14px 16px;margin:12px 16px;}
 .junk-summary-card.limit-reached{background:linear-gradient(135deg,#FEF2F2,#FFF);border-color:var(--red-b);}
 .junk-summary-card.limit-exceeded{background:var(--red-bg);border-color:var(--red);}
@@ -238,7 +238,6 @@ nav::-webkit-scrollbar{display:none;}
 .junk-type-card:active{transform:scale(0.97);}
 .junk-type-card.selected{border-color:var(--accent);background:var(--green-bg);}
 .junk-type-card.disabled{opacity:0.45;cursor:not-allowed;}
-.junk-type-card.today-used{border-color:var(--yellow);background:var(--yellow-bg);}
 .junk-type-icon{font-size:26px;margin-bottom:4px;}
 .junk-type-name{font-size:13px;font-weight:600;color:var(--text);}
 .junk-type-qty{font-size:11px;color:var(--muted);margin-top:2px;}
@@ -256,30 +255,17 @@ nav::-webkit-scrollbar{display:none;}
 .junk-history-date{font-size:11px;color:var(--muted);margin-top:1px;}
 .junk-history-del{font-size:16px;color:var(--muted);cursor:pointer;background:none;border:none;padding:0 2px;}
 
-.jcards{padding:12px 16px;display:flex;flex-direction:column;gap:10px;}
-.jcard{border-radius:10px;border:1px solid var(--border);padding:12px 14px;transition:all .2s;}
-.jcard.warn{background:var(--yellow-bg);border-color:var(--yellow-b);}
-.jcard.danger{background:var(--red-bg);border-color:var(--red-b);}
-.jcrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
-.jcname{font-size:14px;font-weight:600;color:var(--text);}
-.jcard.warn .jcname{color:#92400E;}
-.jcard.danger .jcname{color:#991B1B;}
-.jdots{display:flex;gap:8px;}
-.jdot{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;}
-.jdot.filled{background:#78716C;border-color:#57534E;}
-.jcard.warn .jdot.filled{background:var(--yellow);border-color:#B45309;}
-.jcard.danger .jdot.filled{background:var(--red);border-color:#B91C1C;}
-.jdot.add{border-style:dashed;opacity:0.5;}
-.jcnote{font-size:12px;color:var(--muted);}
-.jtotal{padding:12px 16px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);}
-.jtotal.danger{background:var(--red-bg);}
-.jtotal.danger strong{color:var(--red);}
-.abox{margin:10px 16px;border-radius:10px;padding:10px 14px;font-size:13px;border:1px solid;}
-.abox.yellow{background:var(--yellow-bg);border-color:var(--yellow-b);color:#92400E;}
-.abox.blue{background:var(--blue-bg);border-color:var(--blue-b);color:#1e40af;}
-.abox.red{background:var(--red-bg);border-color:var(--red-b);color:#991B1B;}
+/* Tomorrow */
+.tchips{padding:10px 16px;display:flex;flex-wrap:wrap;gap:7px;border-bottom:1px solid var(--border);}
+.chip{font-size:12px;padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;transition:all .12s;}
+.chip.used{opacity:0.4;pointer-events:none;}
+.tadd{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);}
+.tinput{flex:1;font-size:14px;font-family:'DM Sans',sans-serif;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);outline:none;}
+.tinput:focus{border-color:var(--accent);}
+.taddbtn{padding:9px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;}
+.tempty{padding:20px 16px;font-size:13px;color:var(--muted);text-align:center;}
 
-/* STUDY */
+/* Study */
 .study-cats{padding:12px 16px;display:flex;flex-wrap:wrap;gap:7px;border-bottom:1px solid var(--border);}
 .scat{font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;}
 .scat.active{background:var(--purple-bg);border-color:var(--purple-b);color:#3730A3;}
@@ -298,7 +284,7 @@ nav::-webkit-scrollbar{display:none;}
 .scat-pill{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--purple-bg);color:#3730A3;margin-left:6px;flex-shrink:0;}
 .sdel{font-size:18px;color:var(--muted);cursor:pointer;padding:0 4px;background:transparent;border:none;line-height:1;}
 
-/* ENGLISH */
+/* English */
 .eng-section{padding:14px 16px;}
 .eng-entry{background:var(--bg);border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid var(--border);}
 .eng-date{font-size:11px;color:var(--muted);margin-bottom:4px;}
@@ -315,7 +301,7 @@ nav::-webkit-scrollbar{display:none;}
 .eng-streak{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted);}
 .eng-streak strong{color:#0EA5E9;}
 
-/* REFERENCE */
+/* Reference */
 .rtable{width:100%;border-collapse:collapse;font-size:13px;}
 .rtable th{background:var(--bg);padding:8px 12px;text-align:left;font-weight:600;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);}
 .rtable td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text);}
@@ -324,7 +310,7 @@ nav::-webkit-scrollbar{display:none;}
 .ai{font-size:13px;color:var(--muted);padding:4px 0;display:flex;gap:8px;}
 .ai::before{content:'✗';color:var(--red);font-weight:600;flex-shrink:0;}
 
-/* REMINDERS PAGE */
+/* Reminders */
 .notif-status-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg);}
 .notif-status-dot{width:9px;height:9px;border-radius:50%;background:#ccc;flex-shrink:0;}
 .notif-status-dot.granted{background:var(--green);}
@@ -363,7 +349,7 @@ nav::-webkit-scrollbar{display:none;}
 .preset-chip:active{background:var(--green-bg);border-color:var(--green-b);color:var(--green);}
 .r-count-tag{font-size:11px;color:var(--muted);background:var(--bg);border-radius:20px;padding:2px 8px;border:1px solid var(--border);margin-left:auto;}
 
-/* SETTINGS */
+/* Settings */
 .settings-section-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:10px 16px 6px;}
 .habit-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);}
 .habit-item:last-child{border-bottom:none;}
@@ -373,9 +359,6 @@ nav::-webkit-scrollbar{display:none;}
 .habit-pts-badge{font-size:11px;padding:2px 7px;border-radius:20px;background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-b);flex-shrink:0;}
 .habit-edit-btn{font-size:13px;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-family:inherit;flex-shrink:0;}
 .habit-del-btn{font-size:18px;color:var(--red);cursor:pointer;background:none;border:none;padding:0 2px;line-height:1;flex-shrink:0;}
-.habit-move-btn{font-size:14px;color:var(--muted);cursor:pointer;background:var(--bg);border:1px solid var(--border);border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
-.habit-move-btn:active{background:var(--border);}
-.habit-move-btn:disabled{opacity:0.2;cursor:default;}
 .add-habit-form{padding:12px 16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
 .settings-input{width:100%;font-size:14px;font-family:'DM Sans',sans-serif;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);outline:none;}
 .settings-input:focus{border-color:var(--accent);}
@@ -391,7 +374,7 @@ nav::-webkit-scrollbar{display:none;}
 .rbtn{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--card);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--muted);cursor:pointer;}
 .rbtn.danger{border-color:var(--red-b);color:var(--red);background:var(--red-bg);}
 
-/* BADGES MODAL */
+/* Modals */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:flex-end;justify-content:center;}
 .modal-overlay.open{display:flex;}
 .modal-sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:20px 16px 40px;}
@@ -405,8 +388,6 @@ nav::-webkit-scrollbar{display:none;}
 .badge-name{font-size:11px;font-weight:600;color:var(--text);}
 .badge-card.earned .badge-name{color:var(--purple);}
 .badge-desc{font-size:10px;color:var(--muted);margin-top:2px;}
-
-/* EDIT MODAL */
 .edit-modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;display:none;align-items:center;justify-content:center;padding:16px;}
 .edit-modal.open{display:flex;}
 .edit-box{background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;}
@@ -417,22 +398,62 @@ nav::-webkit-scrollbar{display:none;}
 .edit-save{flex:1;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;}
 .edit-cancel{flex:1;padding:10px;background:var(--bg);color:var(--muted);border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;}
 
-/* TOAST */
+/* Toast */
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1C1917;color:#fff;font-size:13px;padding:10px 20px;border-radius:20px;z-index:9998;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-/* CONFETTI */
+/* Firebase status */
+.firebase-status{background:var(--card);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);}
+.fb-dot{width:7px;height:7px;border-radius:50%;background:#ccc;flex-shrink:0;}
+.fb-dot.online{background:var(--green);}
+.fb-dot.offline{background:var(--red);}
+.fb-dot.syncing{background:#F59E0B;animation:sdpulse 1s infinite;}
+
+/* Confetti */
 @keyframes pop{0%{transform:scale(0) rotate(0deg);opacity:1;}100%{transform:scale(1.8) rotate(720deg);opacity:0;}}
 .confetti-piece{position:fixed;pointer-events:none;font-size:22px;animation:pop 1s forwards;z-index:9999;}
+
+.abox{margin:10px 16px;border-radius:10px;padding:10px 14px;font-size:13px;border:1px solid;}
+.abox.yellow{background:var(--yellow-bg);border-color:var(--yellow-b);color:#92400E;}
+.abox.blue{background:var(--blue-bg);border-color:var(--blue-b);color:#1e40af;}
+.abox.red{background:var(--red-bg);border-color:var(--red-b);color:#991B1B;}
+
+.mnav{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.mnb{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:16px;color:var(--muted);display:flex;align-items:center;justify-content:center;}
+.mnlbl{font-size:14px;font-weight:600;color:var(--text);}
+.jcards{padding:12px 16px;display:flex;flex-direction:column;gap:10px;}
+.jcard{border-radius:10px;border:1px solid var(--border);padding:12px 14px;transition:all .2s;}
+.jcard.warn{background:var(--yellow-bg);border-color:var(--yellow-b);}
+.jcard.danger{background:var(--red-bg);border-color:var(--red-b);}
+.jcrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.jcname{font-size:14px;font-weight:600;color:var(--text);}
+.jcard.warn .jcname{color:#92400E;}
+.jcard.danger .jcname{color:#991B1B;}
+.jdots{display:flex;gap:8px;}
+.jdot{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;}
+.jdot.filled{background:#78716C;border-color:#57534E;}
+.jcard.warn .jdot.filled{background:var(--yellow);border-color:#B45309;}
+.jcard.danger .jdot.filled{background:var(--red);border-color:#B91C1C;}
+.jdot.add{border-style:dashed;opacity:0.5;}
+.jcnote{font-size:12px;color:var(--muted);}
+.jtotal{padding:12px 16px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);}
+.jtotal.danger{background:var(--red-bg);}
+.jtotal.danger strong{color:var(--red);}
 </style>
 </head>
 <body>
+
+<!-- Sync Status -->
+<div class="sync-status" id="sync-status">
+  <div class="sync-dot" id="sync-dot"></div>
+  <span id="sync-text">Syncing...</span>
+</div>
 
 <!-- HEADER -->
 <div class="header">
   <div class="header-top">
     <div class="app-title" id="app-title">Health Tracker</div>
-    <div class="date-chip" id="date-chip">
+    <div class="date-chip">
       <span id="date-chip-text"></span>
       <span class="date-junk-warn" id="date-junk-icon" style="display:none;"></span>
     </div>
@@ -441,6 +462,12 @@ nav::-webkit-scrollbar{display:none;}
     <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
     <div class="prog-text" id="prog-text">0/0</div>
   </div>
+</div>
+
+<!-- Firebase Status Bar -->
+<div class="firebase-status" id="firebase-status-bar">
+  <div class="fb-dot" id="fb-dot"></div>
+  <span id="fb-status-text">Connecting to Firebase...</span>
 </div>
 
 <!-- REWARD BAR -->
@@ -475,8 +502,6 @@ nav::-webkit-scrollbar{display:none;}
 
 <!-- TODAY PAGE -->
 <div class="page active" id="page-today">
-
-  <!-- MISSED TASKS BANNER -->
   <div class="missed-banner" id="missed-banner">
     <div class="missed-banner-header">
       <div class="missed-banner-title">😔 Missed tasks today</div>
@@ -488,7 +513,6 @@ nav::-webkit-scrollbar{display:none;}
     <div class="missed-task-list" id="missed-task-list"></div>
   </div>
 
-  <!-- IN-APP NOTIFICATION -->
   <div class="inapp-notif" id="inapp-notif">
     <div class="inapp-notif-icon" id="inapp-icon">🔔</div>
     <div class="inapp-notif-body">
@@ -498,8 +522,7 @@ nav::-webkit-scrollbar{display:none;}
     <button class="inapp-notif-close" onclick="closeInApp()">×</button>
   </div>
 
-  <!-- HOME REMINDERS PANEL -->
-  <div class="home-reminders-panel" id="home-reminders-panel">
+  <div class="home-reminders-panel">
     <div class="home-rem-header">
       <div class="home-rem-title">🔔 Today's Reminders</div>
       <span class="home-rem-count" id="home-rem-count">0</span>
@@ -507,7 +530,6 @@ nav::-webkit-scrollbar{display:none;}
     <div class="home-rem-list" id="home-rem-list"></div>
   </div>
 
-  <!-- STREAK HERO -->
   <div class="streak-hero">
     <div class="streak-fire" id="home-streak-fire">🌱</div>
     <div class="streak-info">
@@ -518,7 +540,6 @@ nav::-webkit-scrollbar{display:none;}
     </div>
   </div>
 
-  <!-- DYNAMIC TODAY SECTIONS -->
   <div id="today-sections"></div>
 
   <div class="reset-row">
@@ -558,11 +579,11 @@ nav::-webkit-scrollbar{display:none;}
     </div>
     <div style="display:flex;gap:8px;padding:8px 16px 12px;flex-wrap:wrap;">
       <button onclick="addHour(1)" style="flex:1;padding:7px;border-radius:8px;border:1px solid #C7D2FE;background:#EEF2FF;color:#3730A3;font-size:13px;font-family:inherit;cursor:pointer;">+1 hr</button>
-      <button onclick="addHour(-1)" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;">−1 hr</button>
+      <button onclick="addHour(-1)" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;">-1 hr</button>
     </div>
     <div class="cl">
       <div class="ci" data-key="study1" data-pts="10" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Study — 4 hours today</div><div class="cin">No phone, no distractions</div></div></div>
-      <div class="ci" data-key="study2" data-pts="6" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Revise yesterday's topic</div><div class="cin">15–20 minutes</div></div></div>
+      <div class="ci" data-key="study2" data-pts="6" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Revise yesterday's topic</div><div class="cin">15-20 minutes</div></div></div>
     </div>
   </div>
 </div>
@@ -573,7 +594,7 @@ nav::-webkit-scrollbar{display:none;}
     <div class="sh"><span class="si">📝</span><span class="st">Daily English reading</span></div>
     <div class="eng-streak">🔥 Reading streak: <strong id="streak-val">0 days</strong></div>
     <div class="cl">
-      <div class="ci" data-key="eng_read" data-pts="7" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Read English article / passage today</div><div class="cin">10–15 min daily</div></div></div>
+      <div class="ci" data-key="eng_read" data-pts="7" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Read English article / passage today</div><div class="cin">10-15 min daily</div></div></div>
     </div>
     <div class="eng-section">
       <div class="eng-add-wrap">
@@ -602,7 +623,7 @@ nav::-webkit-scrollbar{display:none;}
   </div>
 </div>
 
-<!-- JUNK PAGE — UPGRADED -->
+<!-- JUNK PAGE -->
 <div class="page" id="page-junk">
   <div class="sc" style="margin-bottom:12px;">
     <div class="sh"><span class="si">🚫</span><span class="st">Junk food tracker</span><span class="stag">max 3 units/month</span></div>
@@ -611,8 +632,6 @@ nav::-webkit-scrollbar{display:none;}
       <span class="mnlbl" id="junk-month"></span>
       <button class="mnb" onclick="changeMonth(1)">&#8250;</button>
     </div>
-
-    <!-- Summary card -->
     <div class="junk-summary-card" id="junk-summary-card">
       <div class="junk-summary-row">
         <div>
@@ -621,38 +640,20 @@ nav::-webkit-scrollbar{display:none;}
         </div>
         <span class="junk-status-pill ok" id="junk-status-pill">✅ Safe</span>
       </div>
-      <div class="junk-progress-bar">
-        <div class="junk-progress-fill" id="junk-progress-fill" style="width:0%;background:var(--green);"></div>
-      </div>
+      <div class="junk-progress-bar"><div class="junk-progress-fill" id="junk-progress-fill" style="width:0%;background:var(--green);"></div></div>
       <div id="junk-warn-msg-box"></div>
       <div class="junk-last-info" id="junk-last-info"></div>
     </div>
-
-    <!-- Today used warning -->
-    <div class="junk-today-used-bar" id="junk-today-bar">
-      ⚠️ You already had junk today! One unit per day allowed.
-    </div>
-
-    <!-- Junk type selector -->
+    <div class="junk-today-used-bar" id="junk-today-bar">⚠️ You already had junk today! One unit per day allowed.</div>
     <div style="padding:10px 16px 4px;font-size:12px;font-weight:600;color:var(--muted);">Select type to log:</div>
     <div class="junk-type-grid" id="junk-type-grid"></div>
-
-    <!-- Log button -->
     <button class="junk-log-btn" id="junk-log-btn" onclick="logJunkUnit()" disabled>Select a junk food item to log</button>
-
-    <!-- Rules -->
-    <div class="abox yellow" style="margin-bottom:10px;">
-      ⚠️ 1 unit = 4 puris / 4 bondas / 2 samosas / 1 burger / 4 pizza slices · Max 1 unit/day · Never combine
-    </div>
+    <div class="abox yellow" style="margin-bottom:10px;">⚠️ 1 unit = 4 puris / 4 bondas / 2 samosas / 1 burger / 4 pizza slices · Max 1 unit/day · Never combine</div>
   </div>
-
-  <!-- History -->
   <div class="sc">
     <div class="sh"><span class="si">📜</span><span class="st">Junk food log</span><span class="stag" id="junk-history-month-tag"></span></div>
     <div class="junk-history-list" id="junk-history-list"></div>
   </div>
-
-  <!-- Biryani tracker -->
   <div class="sc">
     <div class="sh"><span class="si">🍛</span><span class="st">Biryani tracker</span><span class="stag">max 2/month</span></div>
     <div class="mnav">
@@ -674,11 +675,11 @@ nav::-webkit-scrollbar{display:none;}
       <tr><th>Food</th><th>Amount</th><th>Why</th></tr>
       <tr><td>🥚 Eggs</td><td>2 daily</td><td>Hair protein, biotin</td></tr>
       <tr><td>🌰 Almonds+Walnuts</td><td>5+2 soaked</td><td>Omega-3, scalp+liver</td></tr>
-      <tr><td>🥬 Spinach</td><td>3–4×/week</td><td>Iron, blood flow</td></tr>
+      <tr><td>🥬 Spinach</td><td>3-4x/week</td><td>Iron, blood flow</td></tr>
       <tr><td>🫐 Amla</td><td>1 daily</td><td>Collagen, hair, liver</td></tr>
       <tr><td>🥛 Curd</td><td>1 bowl</td><td>Gut, dandruff</td></tr>
       <tr><td>🌻 Seeds</td><td>1 spoon</td><td>Zinc, scalp health</td></tr>
-      <tr><td>🍎 Fruits</td><td>1–2 daily</td><td>Skin glow, liver</td></tr>
+      <tr><td>🍎 Fruits</td><td>1-2 daily</td><td>Skin glow, liver</td></tr>
     </table>
   </div>
   <div class="sc">
@@ -712,9 +713,7 @@ nav::-webkit-scrollbar{display:none;}
       <span class="notif-status-text" id="notif-status-text">Checking...</span>
       <button class="notif-enable-btn" id="notif-enable-btn" onclick="requestNotifPermission()">Enable</button>
     </div>
-    <div class="abox blue" style="margin:10px 16px 12px;">
-      💡 Works best on Android Chrome. On iOS, add to Home Screen first for background notifications.
-    </div>
+    <div class="abox blue" style="margin:10px 16px 12px;">💡 Works best on Android Chrome. On iOS, add to Home Screen first.</div>
   </div>
   <div class="sc">
     <div class="sh"><span class="si">⚡</span><span class="st">Quick presets</span></div>
@@ -727,21 +726,11 @@ nav::-webkit-scrollbar{display:none;}
   <div class="sc">
     <div class="sh"><span class="si">➕</span><span class="st">Add new reminder</span></div>
     <div class="add-reminder-form">
-      <div>
-        <label class="form-label">Title</label>
-        <input class="form-input" id="r-title" placeholder="e.g. Drink water 💧" maxlength="60"/>
-      </div>
-      <div>
-        <label class="form-label">Message (optional)</label>
-        <input class="form-input" id="r-msg" placeholder="e.g. Stay hydrated!" maxlength="100"/>
-      </div>
+      <div><label class="form-label">Title</label><input class="form-input" id="r-title" placeholder="e.g. Drink water 💧" maxlength="60"/></div>
+      <div><label class="form-label">Message (optional)</label><input class="form-input" id="r-msg" placeholder="e.g. Stay hydrated!" maxlength="100"/></div>
       <div class="form-row">
-        <div style="flex:1;">
-          <label class="form-label">Time</label>
-          <input class="time-input" id="r-time" type="time" value="08:00"/>
-        </div>
-        <div>
-          <label class="form-label">Icon</label>
+        <div style="flex:1;"><label class="form-label">Time</label><input class="time-input" id="r-time" type="time" value="08:00"/></div>
+        <div><label class="form-label">Icon</label>
           <select class="icon-select" id="r-icon">
             <option>💧</option><option>🌅</option><option>🍳</option><option>💊</option>
             <option>📚</option><option>🏃</option><option>🌙</option><option>🥗</option>
@@ -750,10 +739,7 @@ nav::-webkit-scrollbar{display:none;}
           </select>
         </div>
       </div>
-      <div>
-        <label class="form-label">Repeat on days</label>
-        <div class="days-picker" id="days-picker"></div>
-      </div>
+      <div><label class="form-label">Repeat on days</label><div class="days-picker" id="days-picker"></div></div>
       <button class="add-reminder-btn" onclick="addReminder()">Set Reminder</button>
     </div>
   </div>
@@ -789,6 +775,17 @@ nav::-webkit-scrollbar{display:none;}
       <button class="add-habit-btn" onclick="addNewSection()" style="margin-top:4px;">Add Section</button>
     </div>
   </div>
+  <div class="sc">
+    <div class="sh"><span class="si">☁️</span><span class="st">Firebase Sync</span></div>
+    <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:13px;color:var(--muted);">All your data is automatically saved to Firebase cloud.</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="fb-dot" id="settings-fb-dot"></div>
+        <span style="font-size:13px;" id="settings-fb-text">Checking connection...</span>
+      </div>
+      <button class="rbtn" onclick="forceSyncAll()" style="background:var(--purple-bg);border-color:var(--purple-b);color:var(--purple);">🔄 Force Sync Now</button>
+    </div>
+  </div>
   <div class="reset-row"><button class="rbtn" onclick="resetToday()">Reset today's checklist</button></div>
   <div class="reset-row" style="padding-top:0;"><button class="rbtn danger" onclick="confirmFactoryReset()">⚠️ Factory reset all data</button></div>
 </div>
@@ -809,7 +806,7 @@ nav::-webkit-scrollbar{display:none;}
     <div class="edit-field"><label class="edit-label">Habit name</label><input class="settings-input" id="edit-habit-name" style="width:100%;"/></div>
     <div class="edit-field"><label class="edit-label">Sub-note</label><input class="settings-input" id="edit-habit-note" style="width:100%;"/></div>
     <div class="edit-field"><label class="edit-label">Section</label><select class="settings-select" id="edit-habit-section" style="width:100%;"></select></div>
-    <div class="edit-field"><label class="edit-label">Points (1–20)</label><input class="settings-pts" id="edit-habit-pts" type="number" min="1" max="20" style="width:100%;"/></div>
+    <div class="edit-field"><label class="edit-label">Points (1-20)</label><input class="settings-pts" id="edit-habit-pts" type="number" min="1" max="20" style="width:100%;"/></div>
     <div class="edit-row">
       <button class="edit-cancel" onclick="closeEditModal()">Cancel</button>
       <button class="edit-save" onclick="saveEditHabit()">Save</button>
@@ -817,301 +814,454 @@ nav::-webkit-scrollbar{display:none;}
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   DATA LAYER
-═══════════════════════════════════════════════════ */
-const DB_KEY = 'htrack_v9';
+// ═══════════════════════════════════════════
+// FIREBASE CONFIG
+// ═══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBkZGO2aNVVS_OXkhnBXXkSAfaq7RlGNic",
+  authDomain: "sandyhealth.firebaseapp.com",
+  projectId: "sandyhealth",
+  storageBucket: "sandyhealth.firebasestorage.app",
+  messagingSenderId: "70696103446",
+  appId: "1:70696103446:web:4588a2e851e8915764cf37"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+let isFirebaseOnline = false;
 
-const DEFAULT_SECTIONS = [
-  {id:'morning',  icon:'🌅', name:'Morning',       tag:'on waking'},
-  {id:'skin_am',  icon:'🧴', name:'Morning skin',  tag:''},
-  {id:'breakfast',icon:'🍳', name:'Breakfast',      tag:''},
-  {id:'lunch',    icon:'🕛', name:'Lunch',          tag:''},
-  {id:'water',    icon:'💧', name:'Water',          tag:'special'},
-  {id:'evening',  icon:'🌇', name:'Evening',        tag:'special'},
-  {id:'dinner',   icon:'🌙', name:'Dinner',         tag:''},
-  {id:'night',    icon:'🌃', name:'Night routine',  tag:''},
-  {id:'prep',     icon:'🔔', name:'Prep for tomorrow', tag:''},
-];
-
-const DEFAULT_HABITS = [
-  {id:'lemon',      section:'morning',   name:'Warm lemon water',          note:'1 glass, first thing',          pts:3,  order:0},
-  {id:'almonds',    section:'morning',   name:'Soaked almonds — 5 pieces', note:'Soak tonight before sleeping',  pts:3,  order:1},
-  {id:'walnuts',    section:'morning',   name:'Walnuts — 2 pieces',        note:'',                               pts:2,  order:2},
-  {id:'amla',       section:'morning',   name:'Amla — 1 piece or juice',   note:'Vitamin C, hair + liver',       pts:3,  order:3},
-  {id:'facewash_am',section:'skin_am',   name:'Face wash',                 note:'',                               pts:2,  order:0},
-  {id:'moisturizer',section:'skin_am',   name:'Moisturizer',               note:'',                               pts:2,  order:1},
-  {id:'sunscreen',  section:'skin_am',   name:'Sunscreen',                 note:'If going outside',               pts:2,  order:2},
-  {id:'eggs',       section:'breakfast', name:'2 eggs',                    note:'Protein for hair + skin',        pts:4,  order:0},
-  {id:'fruit_am',   section:'breakfast', name:'1 fruit',                   note:'Banana / apple / papaya / orange',pts:3, order:1},
-  {id:'lunch',      section:'lunch',     name:'Dal + vegetables + 1–2 roti',note:'',                              pts:4,  order:0},
-  {id:'curd',       section:'lunch',     name:'1 bowl curd',               note:'Gut health, reduces dandruff',   pts:3,  order:1},
-  {id:'dinner',     section:'dinner',    name:'Roti + vegetables only',    note:'No fried food at night',         pts:3,  order:0},
-  {id:'facewash_pm',section:'night',     name:'Face wash + moisturizer',   note:'',                               pts:2,  order:0},
-  {id:'hair_tablets',section:'night',    name:'💊 Take hair tablets',       note:'Take with water after dinner',  pts:4,  order:1},
-  {id:'keto',       section:'night',     name:'Ketoconazole shampoo',      note:'2× per week — leave 5 min, rinse',pts:3, order:2},
-  {id:'revision',   section:'night',     name:'Revision in bed',           note:'Read notes / flashcards before sleeping',pts:6,order:3},
-  {id:'sleep',      section:'night',     name:'Sleep by 9:30–10 PM',       note:'',                               pts:4,  order:4},
-  {id:'soak',       section:'prep',      name:'Soak 5 almonds overnight',  note:'',                               pts:2,  order:0},
-  {id:'prep_seeds', section:'prep',      name:'Keep chia / flax seeds ready',note:'',                             pts:2,  order:1},
-];
-
-const DEFAULT_REMINDERS = [
-  {id:'r1',title:'Good morning! 🌅', msg:'Lemon water, almonds & amla time!',time:'06:30',icon:'🌅',days:[0,1,2,3,4,5,6],enabled:true},
-  {id:'r2',title:'Study time 📚',    msg:'4 hours — no phone, no distractions!',time:'10:00',icon:'📚',days:[1,2,3,4,5],  enabled:true},
-  {id:'r3',title:'Drink water 💧',   msg:'Have you had enough water today?',    time:'14:00',icon:'💧',days:[0,1,2,3,4,5,6],enabled:true},
-  {id:'r4',title:'Evening snack 🍎', msg:'Fruit or seeds before 6 PM',          time:'17:00',icon:'🍎',days:[0,1,2,3,4,5,6],enabled:true},
-  {id:'r5',title:'Take hair tablets 💊',msg:"Don't forget after dinner!",       time:'21:00',icon:'💊',days:[0,1,2,3,4,5,6],enabled:true},
-  {id:'r6',title:'Sleep time 🌙',    msg:'Wind down. Revise & sleep by 10 PM',  time:'21:30',icon:'🌙',days:[0,1,2,3,4,5,6],enabled:true},
-];
-
-/* New junk food definitions */
-const JUNK_TYPES = [
-  {id:'puri',    icon:'🫓', name:'Puri / Bonda',     qty:'4 puris or 4 bondas',  equiv:'= 1 unit'},
-  {id:'samosa',  icon:'🥟', name:'Samosa',           qty:'2 samosas',             equiv:'= 1 unit'},
-  {id:'burger',  icon:'🍔', name:'Burger',           qty:'1 burger',              equiv:'= 1 unit'},
-  {id:'pizza',   icon:'🍕', name:'Pizza',            qty:'4 slices',              equiv:'= 1 unit'},
-  {id:'other',   icon:'🍟', name:'Other junk',       qty:'1 portion',             equiv:'= 1 unit'},
-];
-
-const REMINDER_PRESETS = [
-  {title:'Drink water 💧',     msg:'Stay hydrated!',              time:'10:00',icon:'💧',days:[0,1,2,3,4,5,6]},
-  {title:'Take tablets 💊',    msg:"Don't forget your tablets",   time:'21:00',icon:'💊',days:[0,1,2,3,4,5,6]},
-  {title:'Study time 📚',      msg:'4 hours — no distractions!',  time:'09:00',icon:'📚',days:[1,2,3,4,5]},
-  {title:'Morning routine 🌅', msg:'Lemon water, almonds, amla',  time:'06:30',icon:'🌅',days:[0,1,2,3,4,5,6]},
-  {title:'Sleep reminder 🌙',  msg:'Wind down. Sleep by 10 PM',   time:'21:30',icon:'🌙',days:[0,1,2,3,4,5,6]},
-  {title:'Lunch time 🥗',      msg:'Dal + veggies + roti!',       time:'13:00',icon:'🥗',days:[1,2,3,4,5]},
-  {title:'Evening walk 🏃',    msg:'Get some steps in!',           time:'17:30',icon:'🏃',days:[0,1,2,3,4,5,6]},
-  {title:'Read English 📖',    msg:'10–15 min reading time',      time:'20:00',icon:'📚',days:[0,1,2,3,4,5,6]},
-];
-
-function defaultState(){
-  return {
-    lastDate:'', checks:{}, water:0,
-    junk:{}, biry:{}, tmr:[], study:[], eng:[],
-    pts:0, totalPts:0,
-    studyHrs:0, studyStreak:0, lastStudyDate:'',
-    engStreak:0, lastEngDate:'',
-    earnedBadges:[],
-    habits: JSON.parse(JSON.stringify(DEFAULT_HABITS)),
-    sections: JSON.parse(JSON.stringify(DEFAULT_SECTIONS)),
-    reminders: JSON.parse(JSON.stringify(DEFAULT_REMINDERS)),
-    junkLog: [],       /* NEW: [{id, date, item_type, unit_count, icon}] */
-    missedBannerDismissedDate: '',
-  };
+function updateFirebaseStatus(status) {
+  const dot=document.getElementById('fb-dot'),text=document.getElementById('fb-status-text');
+  const sd=document.getElementById('settings-fb-dot'),st=document.getElementById('settings-fb-text');
+  if(status==='online'){
+    isFirebaseOnline=true;
+    if(dot)dot.className='fb-dot online';
+    if(text)text.textContent='✅ Connected to Firebase';
+    if(sd)sd.className='fb-dot online';
+    if(st)st.textContent='✅ Connected to Firebase cloud';
+  } else if(status==='syncing'){
+    if(dot)dot.className='fb-dot syncing';
+    if(text)text.textContent='🔄 Syncing...';
+  } else {
+    isFirebaseOnline=false;
+    if(dot)dot.className='fb-dot offline';
+    if(text)text.textContent='📱 Offline — using local storage';
+    if(sd)sd.className='fb-dot offline';
+    if(st)st.textContent='📱 Offline mode — data saved locally';
+  }
 }
 
-let state = defaultState();
-
-function save(){ try{ localStorage.setItem(DB_KEY, JSON.stringify(state)); }catch(e){} }
-function load(){
-  try{
-    const r = localStorage.getItem(DB_KEY);
-    if(r){
-      const p = JSON.parse(r);
-      state = Object.assign(defaultState(), p);
-      if(!state.habits||!state.habits.length) state.habits=JSON.parse(JSON.stringify(DEFAULT_HABITS));
-      if(!state.sections||!state.sections.length) state.sections=JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
-      if(!state.reminders) state.reminders=JSON.parse(JSON.stringify(DEFAULT_REMINDERS));
-      if(!state.junkLog) state.junkLog=[];
-      // Ensure order field exists on habits
-      state.habits.forEach((h,i)=>{ if(h.order===undefined) h.order=i; });
-    }
-  }catch(e){}
+function showSync(type, message) {
+  const status=document.getElementById('sync-status'),dot=document.getElementById('sync-dot'),text=document.getElementById('sync-text');
+  if(!status)return;
+  status.className=`sync-status show ${type}`;
+  dot.className=type==='syncing'?'sync-dot pulse':'sync-dot';
+  text.textContent=message;
+  setTimeout(()=>status.classList.remove('show'),2000);
 }
 
-/* ═══════════════════════════════════════════════════
-   CONSTANTS & STATE
-═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+// DATA LAYER
+// ═══════════════════════════════════════════
+const DB_KEY='htrack_v10_fb';
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const QUICK=['👟 Shoe cleaning','👕 Laundry','🍳 Cooking','🛒 Grocery shopping','🧹 Room cleaning','👔 Iron clothes','🥘 Meal prep','💊 Take medicine'];
 const STUDY_CATS=['Resume/CV','Skills','Interview prep','Networking','Job search','Online course','Portfolio'];
+const JUNK_TYPES=[
+  {id:'puri',icon:'🫓',name:'Puri / Bonda',qty:'4 puris or 4 bondas',equiv:'= 1 unit'},
+  {id:'samosa',icon:'🥟',name:'Samosa',qty:'2 samosas',equiv:'= 1 unit'},
+  {id:'burger',icon:'🍔',name:'Burger',qty:'1 burger',equiv:'= 1 unit'},
+  {id:'pizza',icon:'🍕',name:'Pizza',qty:'4 slices',equiv:'= 1 unit'},
+  {id:'other',icon:'🍟',name:'Other junk',qty:'1 portion',equiv:'= 1 unit'},
+];
+const REMINDER_PRESETS=[
+  {title:'Drink water 💧',msg:'Stay hydrated!',time:'10:00',icon:'💧',days:[0,1,2,3,4,5,6]},
+  {title:'Take tablets 💊',msg:"Don't forget your tablets",time:'21:00',icon:'💊',days:[0,1,2,3,4,5,6]},
+  {title:'Study time 📚',msg:'4 hours — no distractions!',time:'09:00',icon:'📚',days:[1,2,3,4,5]},
+  {title:'Morning routine 🌅',msg:'Lemon water, almonds, amla',time:'06:30',icon:'🌅',days:[0,1,2,3,4,5,6]},
+  {title:'Sleep reminder 🌙',msg:'Wind down. Sleep by 10 PM',time:'21:30',icon:'🌙',days:[0,1,2,3,4,5,6]},
+  {title:'Lunch time 🥗',msg:'Dal + veggies + roti!',time:'13:00',icon:'🥗',days:[1,2,3,4,5]},
+  {title:'Evening walk 🏃',msg:'Get some steps in!',time:'17:30',icon:'🏃',days:[0,1,2,3,4,5,6]},
+  {title:'Read English 📖',msg:'10-15 min reading time',time:'20:00',icon:'📚',days:[0,1,2,3,4,5,6]},
+];
+const DEFAULT_SECTIONS=[
+  {id:'morning',icon:'🌅',name:'Morning',tag:'on waking'},
+  {id:'skin_am',icon:'🧴',name:'Morning skin',tag:''},
+  {id:'breakfast',icon:'🍳',name:'Breakfast',tag:''},
+  {id:'lunch',icon:'🕛',name:'Lunch',tag:''},
+  {id:'water',icon:'💧',name:'Water',tag:'special'},
+  {id:'evening',icon:'🌇',name:'Evening',tag:'special'},
+  {id:'dinner',icon:'🌙',name:'Dinner',tag:''},
+  {id:'night',icon:'🌃',name:'Night routine',tag:''},
+  {id:'prep',icon:'🔔',name:'Prep for tomorrow',tag:''},
+];
+const DEFAULT_HABITS=[
+  {id:'lemon',section:'morning',name:'Warm lemon water',note:'1 glass, first thing',pts:3,order:0},
+  {id:'almonds',section:'morning',name:'Soaked almonds — 5 pieces',note:'Soak tonight before sleeping',pts:3,order:1},
+  {id:'walnuts',section:'morning',name:'Walnuts — 2 pieces',note:'',pts:2,order:2},
+  {id:'amla',section:'morning',name:'Amla — 1 piece or juice',note:'Vitamin C, hair + liver',pts:3,order:3},
+  {id:'facewash_am',section:'skin_am',name:'Face wash',note:'',pts:2,order:0},
+  {id:'moisturizer',section:'skin_am',name:'Moisturizer',note:'',pts:2,order:1},
+  {id:'sunscreen',section:'skin_am',name:'Sunscreen',note:'If going outside',pts:2,order:2},
+  {id:'eggs',section:'breakfast',name:'2 eggs',note:'Protein for hair + skin',pts:4,order:0},
+  {id:'fruit_am',section:'breakfast',name:'1 fruit',note:'Banana / apple / papaya',pts:3,order:1},
+  {id:'lunch',section:'lunch',name:'Dal + vegetables + 1-2 roti',note:'',pts:4,order:0},
+  {id:'curd',section:'lunch',name:'1 bowl curd',note:'Gut health, reduces dandruff',pts:3,order:1},
+  {id:'dinner',section:'dinner',name:'Roti + vegetables only',note:'No fried food at night',pts:3,order:0},
+  {id:'facewash_pm',section:'night',name:'Face wash + moisturizer',note:'',pts:2,order:0},
+  {id:'hair_tablets',section:'night',name:'💊 Take hair tablets',note:'Take with water after dinner',pts:4,order:1},
+  {id:'keto',section:'night',name:'Ketoconazole shampoo',note:'2x per week — leave 5 min',pts:3,order:2},
+  {id:'revision',section:'night',name:'Revision in bed',note:'Read notes before sleeping',pts:6,order:3},
+  {id:'sleep',section:'night',name:'Sleep by 9:30-10 PM',note:'',pts:4,order:4},
+  {id:'soak',section:'prep',name:'Soak 5 almonds overnight',note:'',pts:2,order:0},
+  {id:'prep_seeds',section:'prep',name:'Keep chia / flax seeds ready',note:'',pts:2,order:1},
+];
+const DEFAULT_REMINDERS=[
+  {id:'r1',title:'Good morning! 🌅',msg:'Lemon water, almonds & amla time!',time:'06:30',icon:'🌅',days:[0,1,2,3,4,5,6],enabled:true},
+  {id:'r2',title:'Study time 📚',msg:'4 hours — no phone, no distractions!',time:'10:00',icon:'📚',days:[1,2,3,4,5],enabled:true},
+  {id:'r3',title:'Drink water 💧',msg:'Have you had enough water today?',time:'14:00',icon:'💧',days:[0,1,2,3,4,5,6],enabled:true},
+  {id:'r4',title:'Evening snack 🍎',msg:'Fruit or seeds before 6 PM',time:'17:00',icon:'🍎',days:[0,1,2,3,4,5,6],enabled:true},
+  {id:'r5',title:'Take hair tablets 💊',msg:"Don't forget after dinner!",time:'21:00',icon:'💊',days:[0,1,2,3,4,5,6],enabled:true},
+  {id:'r6',title:'Sleep time 🌙',msg:'Wind down. Revise & sleep by 10 PM',time:'21:30',icon:'🌙',days:[0,1,2,3,4,5,6],enabled:true},
+];
 
-let curJunkMonth=new Date().getMonth(), curJunkYear=new Date().getFullYear();
-let curBiryMonth=new Date().getMonth(), curBiryYear=new Date().getFullYear();
-let selStudyCat='', editingHabitId=null, settingsFilter='all';
-let selectedDays=[0,1,2,3,4,5,6];
-let firedToday={};
-let inAppTimeout=null;
-let selectedJunkType=null;
-let swimAnimFrame=null, swimX=0, swimDir=1;
-
-/* ═══════════════════════════════════════════════════
-   UTILS
-═══════════════════════════════════════════════════ */
-function todayKey(){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); }
-function mkey(y,m){ return y+'-'+String(m+1).padStart(2,'0'); }
-function isWeekend(){ const d=new Date().getDay(); return d===0||d===6; }
-function genId(){ return '_'+Math.random().toString(36).substr(2,9); }
-function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2800);
+function defaultState(){
+  return {
+    lastDate:'',checks:{},water:0,
+    junk:{},biry:{},tmr:[],study:[],eng:[],
+    pts:0,totalPts:0,
+    studyHrs:0,studyStreak:0,lastStudyDate:'',
+    engStreak:0,lastEngDate:'',
+    earnedBadges:[],
+    habits:JSON.parse(JSON.stringify(DEFAULT_HABITS)),
+    sections:JSON.parse(JSON.stringify(DEFAULT_SECTIONS)),
+    reminders:JSON.parse(JSON.stringify(DEFAULT_REMINDERS)),
+    junkLog:[],
+    missedBannerDismissedDate:'',
+  };
 }
-function fmtDate(dateStr){
-  const d=new Date(dateStr);
-  return d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+
+let state=defaultState();
+
+// ═══════════════════════════════════════════
+// FIREBASE SAVE & LOAD (SYNCS MOBILE & LAPTOP)
+// ═══════════════════════════════════════════
+async function save(){
+  try{localStorage.setItem(DB_KEY,JSON.stringify(state));}catch(e){}
+  try{
+    updateFirebaseStatus('syncing');
+    const today=todayKey();
+    await db.collection('health_tracker').doc('sandy_daily_'+today).set({
+      date:today,checks:state.checks||{},water:state.water||0,
+      pts:state.pts||0,totalPts:state.totalPts||0,studyHrs:state.studyHrs||0,
+      studyStreak:state.studyStreak||0,lastStudyDate:state.lastStudyDate||'',
+      engStreak:state.engStreak||0,lastEngDate:state.lastEngDate||'',
+      earnedBadges:state.earnedBadges||[],tmr:state.tmr||[],
+      study:state.study||[],eng:state.eng||[],biry:state.biry||{},
+      lastDate:state.lastDate||'',missedBannerDismissedDate:state.missedBannerDismissedDate||'',
+      savedAt:new Date().toISOString()
+    },{merge:true});
+    await db.collection('health_tracker').doc('sandy_config').set({
+      habits:state.habits||[],sections:state.sections||[],
+      reminders:state.reminders||[],updatedAt:new Date().toISOString()
+    },{merge:true});
+    updateFirebaseStatus('online');showSync('success','✅ Synced');
+  }catch(err){
+    console.warn('Firebase save error:',err);
+    updateFirebaseStatus('offline');showSync('error','💾 Saved locally');
+  }
 }
 
-/* ═══════════════════════════════════════════════════
-   GREETING
-═══════════════════════════════════════════════════ */
+async function load(){
+  try{const r=localStorage.getItem(DB_KEY);if(r)state=Object.assign(defaultState(),JSON.parse(r));}catch(e){state=defaultState();}
+  try{
+    showSync('syncing','📥 Loading...');updateFirebaseStatus('syncing');
+    const today=todayKey();
+    const dailyDoc=await db.collection('health_tracker').doc('sandy_daily_'+today).get();
+    const configDoc=await db.collection('health_tracker').doc('sandy_config').get();
+    if(dailyDoc.exists){
+      const d=dailyDoc.data();
+      state.checks=d.checks||state.checks||{};
+      state.water=d.water!==undefined?d.water:state.water;
+      state.pts=d.pts!==undefined?d.pts:state.pts;
+      state.totalPts=d.totalPts!==undefined?d.totalPts:state.totalPts;
+      state.studyHrs=d.studyHrs!==undefined?d.studyHrs:state.studyHrs;
+      state.studyStreak=d.studyStreak!==undefined?d.studyStreak:state.studyStreak;
+      state.lastStudyDate=d.lastStudyDate||state.lastStudyDate;
+      state.engStreak=d.engStreak!==undefined?d.engStreak:state.engStreak;
+      state.lastEngDate=d.lastEngDate||state.lastEngDate;
+      state.earnedBadges=d.earnedBadges||state.earnedBadges||[];
+      state.tmr=d.tmr||state.tmr||[];
+      state.study=d.study||state.study||[];
+      state.eng=d.eng||state.eng||[];
+      state.biry=d.biry||state.biry||{};
+      state.lastDate=d.lastDate||state.lastDate;
+      state.missedBannerDismissedDate=d.missedBannerDismissedDate||'';
+    }
+    if(configDoc.exists){
+      const c=configDoc.data();
+      if(c.habits&&c.habits.length)state.habits=c.habits;
+      if(c.sections&&c.sections.length)state.sections=c.sections;
+      if(c.reminders&&c.reminders.length)state.reminders=c.reminders;
+    }
+    const junkSnap=await db.collection('junk_log').orderBy('date','desc').get();
+    if(!junkSnap.empty){
+      state.junkLog=junkSnap.docs.map(doc=>({id:doc.id,...doc.data()}));
+    }
+    if(!state.habits||!state.habits.length)state.habits=JSON.parse(JSON.stringify(DEFAULT_HABITS));
+    if(!state.sections||!state.sections.length)state.sections=JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+    if(!state.reminders)state.reminders=JSON.parse(JSON.stringify(DEFAULT_REMINDERS));
+    if(!state.junkLog)state.junkLog=[];
+    state.habits.forEach((h,i)=>{if(h.order===undefined)h.order=i;});
+    localStorage.setItem(DB_KEY,JSON.stringify(state));
+    updateFirebaseStatus('online');showSync('success','📥 Loaded');
+  }catch(err){
+    console.warn('Firebase load error:',err);
+    updateFirebaseStatus('offline');showSync('error','📱 Offline mode');
+    if(!state.habits||!state.habits.length)state.habits=JSON.parse(JSON.stringify(DEFAULT_HABITS));
+    if(!state.sections||!state.sections.length)state.sections=JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+    if(!state.reminders)state.reminders=JSON.parse(JSON.stringify(DEFAULT_REMINDERS));
+    if(!state.junkLog)state.junkLog=[];
+    state.habits.forEach((h,i)=>{if(h.order===undefined)h.order=i;});
+  }
+}
+
+async function forceSyncAll(){
+  showToast('🔄 Force syncing...');
+  await save();
+  showToast('✅ All data synced to Firebase!');
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function todayKey(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function mkey(y,m){return y+'-'+String(m+1).padStart(2,'0');}
+function isWeekend(){const d=new Date().getDay();return d===0||d===6;}
+function genId(){return '_'+Math.random().toString(36).substr(2,9);}
+function fmtDate(dateStr){const d=new Date(dateStr);return d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+// ═══════════════════════════════════════════
+// GREETING
+// ═══════════════════════════════════════════
 function getGreeting(){
   const h=new Date().getHours();
-  if(h>=5&&h<12) return '🌅 Good morning, Sandy!';
-  if(h>=12&&h<16) return '☀️ Good afternoon, Sandy!';
-  if(h>=16&&h<18) return '😄 How\'s it going, Sandy?';
-  if(h>=18&&h<20) return '🍬 Are you eating sugar, Sandy?';
-  if(h>=20&&h<21) return '💧 Are you hydrating enough, Sandy?';
+  if(h>=5&&h<12)return '🌅 Good morning, Sandy!';
+  if(h>=12&&h<16)return '☀️ Good afternoon, Sandy!';
+  if(h>=16&&h<18)return '😄 How\'s it going, Sandy?';
+  if(h>=18&&h<20)return '🍬 Are you eating sugar, Sandy?';
+  if(h>=20&&h<21)return '💧 Are you hydrating enough, Sandy?';
   return '🌙 Good night, Sandy!';
 }
 function updateGreeting(){
-  const el=document.getElementById('app-title'); if(!el) return;
+  const el=document.getElementById('app-title');if(!el)return;
   const g=getGreeting();
-  if(el.textContent!==g){ el.style.opacity='0'; setTimeout(()=>{el.textContent=g;el.style.opacity='1';},300); }
+  if(el.textContent!==g){el.style.opacity='0';setTimeout(()=>{el.textContent=g;el.style.opacity='1';},300);}
 }
 
-/* ═══════════════════════════════════════════════════
-   DATE CHIP — JUNK WARNING ICON
-═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+// JUNK FOOD TRACKER
+// ═══════════════════════════════════════════
+let curJunkMonth=new Date().getMonth(),curJunkYear=new Date().getFullYear();
+let curBiryMonth=new Date().getMonth(),curBiryYear=new Date().getFullYear();
+let selectedJunkType=null;
+
+function getJunkCountForMonth(mk){return(state.junkLog||[]).filter(e=>e.date.substring(0,7)===mk).length;}
+function getLastJunkDate(){const log=state.junkLog||[];if(!log.length)return null;return[...log].sort((a,b)=>b.date.localeCompare(a.date))[0];}
+function hasJunkToday(){return(state.junkLog||[]).some(e=>e.date===todayKey());}
+
+async function logJunkUnit(){
+  if(!selectedJunkType){showToast('⚠️ Select a junk food type first');return;}
+  const mk=mkey(curJunkYear,curJunkMonth);
+  const count=getJunkCountForMonth(mk);
+  if(count>=3){showToast('🚫 Monthly limit reached!');return;}
+  if(hasJunkToday()){showToast('⚠️ Already had junk today!');return;}
+  const typeData=JUNK_TYPES.find(t=>t.id===selectedJunkType);if(!typeData)return;
+  const entry={id:genId(),date:todayKey(),item_type:selectedJunkType,unit_count:1,icon:typeData.icon,name:typeData.name};
+  state.junkLog.push(entry);
+  try{await db.collection('junk_log').doc(entry.id).set({...entry,timestamp:new Date().toISOString()});}catch(err){console.warn('Junk Firebase error:',err);}
+  await save();renderJunkTracker();showToast('✅ Logged: '+typeData.name);selectedJunkType=null;updateDateChipJunkWarn();
+}
+
+async function deleteJunkEntry(id){
+  if(!confirm('Delete this junk food entry?'))return;
+  try{await db.collection('junk_log').doc(id).delete();}catch(err){console.warn('Delete error:',err);}
+  state.junkLog=state.junkLog.filter(e=>e.id!==id);
+  await save();renderJunkTracker();showToast('🗑 Entry deleted');updateDateChipJunkWarn();
+}
+
 function updateDateChipJunkWarn(){
-  const icon=document.getElementById('date-junk-icon'); if(!icon) return;
+  const icon=document.getElementById('date-junk-icon');if(!icon)return;
   const mk=mkey(new Date().getFullYear(),new Date().getMonth());
   const count=getJunkCountForMonth(mk);
-  if(count>=4){ icon.textContent='🚫'; icon.style.display='inline'; icon.title='Junk limit EXCEEDED!'; }
-  else if(count===3){ icon.textContent='⚠️'; icon.style.display='inline'; icon.title='Monthly junk limit reached'; }
-  else { icon.style.display='none'; }
+  if(count>=4){icon.textContent='🚫';icon.style.display='inline';icon.title='Junk limit EXCEEDED!';}
+  else if(count===3){icon.textContent='⚠️';icon.style.display='inline';icon.title='Monthly junk limit reached';}
+  else{icon.style.display='none';}
 }
 
-/* ═══════════════════════════════════════════════════
-   MISSED TASKS BANNER — shows after 9 PM
-═══════════════════════════════════════════════════ */
-function checkMissedTasksBanner(){
-  const h=new Date().getHours();
-  const today=todayKey();
-  if(h<21) return; // only after 9 PM
-  if(state.missedBannerDismissedDate===today) return;
+function renderJunkTracker(){
+  const mk=mkey(curJunkYear,curJunkMonth);
+  document.getElementById('junk-month').textContent=MONTHS[curJunkMonth]+' '+curJunkYear;
+  const count=getJunkCountForMonth(mk),remaining=Math.max(0,3-count),pct=Math.round(count/3*100);
+  const card=document.getElementById('junk-summary-card');
+  card.className='junk-summary-card';
+  if(count>=4)card.classList.add('limit-exceeded');
+  else if(count===3)card.classList.add('limit-reached');
+  document.getElementById('junk-count-big').innerHTML=count+' <span>/ 3 units</span>';
+  document.getElementById('junk-remaining-text').textContent=remaining+' unit'+(remaining===1?'':'s')+' remaining this month';
+  const statusPill=document.getElementById('junk-status-pill');
+  statusPill.className='junk-status-pill';
+  if(count>=4){statusPill.classList.add('exceeded');statusPill.textContent='🚫 EXCEEDED';}
+  else if(count===3){statusPill.classList.add('limit');statusPill.textContent='⚠️ Limit';}
+  else if(count>=2){statusPill.classList.add('warn');statusPill.textContent='⚠️ Warning';}
+  else{statusPill.classList.add('ok');statusPill.textContent='✅ Safe';}
+  const bar=document.getElementById('junk-progress-fill');
+  bar.style.width=Math.min(100,pct)+'%';
+  bar.style.background=count>=4?'var(--red)':count===3?'#D97706':count>=2?'#F59E0B':'var(--green)';
+  const warnBox=document.getElementById('junk-warn-msg-box');warnBox.innerHTML='';
+  if(count>=4){const msg=document.createElement('div');msg.className='junk-warn-msg danger';msg.textContent='🚫 Limit exceeded — avoid further intake!';warnBox.appendChild(msg);}
+  else if(count===3){const msg=document.createElement('div');msg.className='junk-warn-msg warn';msg.textContent='⚠️ Monthly junk food limit reached! No more this month.';warnBox.appendChild(msg);}
+  const lastInfo=document.getElementById('junk-last-info');lastInfo.innerHTML='';
+  const last=getLastJunkDate();
+  if(last){
+    const typeData=JUNK_TYPES.find(t=>t.id===last.item_type);
+    const span1=document.createElement('span');span1.textContent='Last: '+fmtDate(last.date);lastInfo.appendChild(span1);
+    if(typeData){const span2=document.createElement('span');span2.textContent=typeData.icon+' '+typeData.name;lastInfo.appendChild(span2);}
+  }
+  document.getElementById('junk-today-bar').classList.toggle('show',hasJunkToday());
+  const grid=document.getElementById('junk-type-grid');grid.innerHTML='';
+  JUNK_TYPES.forEach(type=>{
+    const c=document.createElement('div');c.className='junk-type-card';
+    if(selectedJunkType===type.id)c.classList.add('selected');
+    if(count>=3||hasJunkToday())c.classList.add('disabled');
+    c.onclick=()=>{if(count>=3||hasJunkToday())return;selectedJunkType=selectedJunkType===type.id?null:type.id;renderJunkTracker();};
+    c.innerHTML=`<div class="junk-type-icon">${type.icon}</div><div class="junk-type-name">${type.name}</div><div class="junk-type-qty">${type.qty}</div><div class="junk-type-equiv">${type.equiv}</div>`;
+    grid.appendChild(c);
+  });
+  const logBtn=document.getElementById('junk-log-btn');
+  logBtn.disabled=!selectedJunkType||count>=3||hasJunkToday();
+  logBtn.textContent=selectedJunkType?'Log '+JUNK_TYPES.find(t=>t.id===selectedJunkType).name:'Select a junk food item to log';
+  const monthEntries=(state.junkLog||[]).filter(e=>e.date.substring(0,7)===mk).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('junk-history-month-tag').textContent=monthEntries.length+' entries';
+  const histList=document.getElementById('junk-history-list');histList.innerHTML='';
+  if(!monthEntries.length){const e=document.createElement('div');e.className='tempty';e.textContent='No junk food logged this month. Keep it clean! 🌿';histList.appendChild(e);}
+  else{
+    monthEntries.forEach(entry=>{
+      const typeData=JUNK_TYPES.find(t=>t.id===entry.item_type);
+      const row=document.createElement('div');row.className='junk-history-item';
+      row.innerHTML=`<div class="junk-history-icon">${entry.icon||typeData?.icon||'🍟'}</div><div class="junk-history-body"><div class="junk-history-name">${entry.name||typeData?.name||entry.item_type}</div><div class="junk-history-date">${fmtDate(entry.date)}</div></div><button class="junk-history-del" onclick="deleteJunkEntry('${entry.id}')">×</button>`;
+      histList.appendChild(row);
+    });
+  }
+}
+function changeMonth(dir){curJunkMonth+=dir;if(curJunkMonth>11){curJunkMonth=0;curJunkYear++;}if(curJunkMonth<0){curJunkMonth=11;curJunkYear--;}renderJunkTracker();}
 
+// Biryani
+function getBiry(y,m){const k=mkey(y,m);if(!state.biry)state.biry={};if(!state.biry[k])state.biry[k]=0;return state.biry[k];}
+function setBiry(y,m,v){const k=mkey(y,m);if(!state.biry)state.biry={};state.biry[k]=v;}
+function renderBiry(){
+  document.getElementById('biry-month').textContent=MONTHS[curBiryMonth]+' '+curBiryYear;
+  const count=getBiry(curBiryYear,curBiryMonth);const cards=document.getElementById('biry-cards');cards.innerHTML='';
+  const card=document.createElement('div');card.className='jcard'+(count>=2?' danger':count>0?' warn':'');
+  const dots=[];for(let i=0;i<2;i++)dots.push(`<div class="jdot${i<count?' filled':''}" onclick="toggleBiry(${i})"></div>`);
+  if(count<2)dots.push(`<div class="jdot add" onclick="addBiry()"></div>`);
+  card.innerHTML=`<div class="jcrow"><span class="jcname">🍛 Biryani</span><div class="jdots">${dots.join('')}</div></div><div class="jcnote">Max 2/month · Enjoy every bite!</div>`;
+  cards.appendChild(card);
+  const tot=document.getElementById('biry-total');tot.className='jtotal'+(count>=2?' danger':'');
+  tot.innerHTML=count>=2?'<strong>🔴 Biryani quota full! 🍛🍛</strong>':'Eaten: <strong>'+count+' / 2</strong> · '+(2-count)+' remaining '+(count===0?'🟢':'🟡');
+}
+function addBiry(){const c=getBiry(curBiryYear,curBiryMonth);if(c>=2)return;setBiry(curBiryYear,curBiryMonth,c+1);save();renderBiry();}
+function toggleBiry(idx){const c=getBiry(curBiryYear,curBiryMonth);if(idx===c-1&&c>0)setBiry(curBiryYear,curBiryMonth,c-1);else if(c<2)setBiry(curBiryYear,curBiryMonth,c+1);save();renderBiry();}
+function changeBMonth(dir){curBiryMonth+=dir;if(curBiryMonth>11){curBiryMonth=0;curBiryYear++;}if(curBiryMonth<0){curBiryMonth=11;curBiryYear--;}renderBiry();}
+
+// ═══════════════════════════════════════════
+// MISSED TASKS BANNER
+// ═══════════════════════════════════════════
+function checkMissedTasksBanner(){
+  const h=new Date().getHours();const today=todayKey();
+  if(h<21)return;
+  if(state.missedBannerDismissedDate===today)return;
   const allItems=document.querySelectorAll('.ci[data-key]');
   const missed=[];
-  allItems.forEach(el=>{
-    if(!el.classList.contains('done')){
-      const label=el.querySelector('.cil');
-      if(label) missed.push(label.textContent);
-    }
-  });
-
-  const total=allItems.length;
-  const doneCount=total-missed.length;
+  allItems.forEach(el=>{if(!el.classList.contains('done')){const label=el.querySelector('.cil');if(label)missed.push(label.textContent);}});
+  const total=allItems.length;const doneCount=total-missed.length;
   const pct=total>0?Math.round(doneCount/total*100):100;
-
-  const banner=document.getElementById('missed-banner');
-  const list=document.getElementById('missed-task-list');
-  const pctBadge=document.getElementById('missed-pct-badge');
-
-  if(missed.length===0){ banner.classList.remove('show'); return; }
-
-  pctBadge.textContent=pct+'% done';
-  list.innerHTML='';
-  missed.slice(0,8).forEach(name=>{
-    const item=document.createElement('div');
-    item.className='missed-task-item';
-    item.textContent=name;
-    list.appendChild(item);
-  });
-  if(missed.length>8){
-    const more=document.createElement('div');
-    more.className='missed-task-item';
-    more.textContent='...and '+(missed.length-8)+' more';
-    list.appendChild(more);
-  }
-
+  const banner=document.getElementById('missed-banner');const list=document.getElementById('missed-task-list');const pctBadge=document.getElementById('missed-pct-badge');
+  if(missed.length===0){banner.classList.remove('show');return;}
+  pctBadge.textContent=pct+'% done';list.innerHTML='';
+  missed.slice(0,8).forEach(name=>{const item=document.createElement('div');item.className='missed-task-item';item.textContent=name;list.appendChild(item);});
+  if(missed.length>8){const more=document.createElement('div');more.className='missed-task-item';more.textContent='...and '+(missed.length-8)+' more';list.appendChild(more);}
   banner.classList.add('show');
-
-  // Also highlight missed tasks in red
-  allItems.forEach(el=>{
-    if(!el.classList.contains('done')) el.classList.add('missed-highlight');
-    else el.classList.remove('missed-highlight');
-  });
-
-  // Fire notification
+  allItems.forEach(el=>{if(!el.classList.contains('done'))el.classList.add('missed-highlight');else el.classList.remove('missed-highlight');});
   fireNotification('😔 Missed tasks today','You missed '+missed.length+' task'+(missed.length>1?'s':'')+' — '+pct+'% done','😔');
 }
 
 function closeMissedBanner(){
   document.getElementById('missed-banner').classList.remove('show');
-  state.missedBannerDismissedDate=todayKey();
-  save();
-  // Remove highlights
+  state.missedBannerDismissedDate=todayKey();save();
   document.querySelectorAll('.ci.missed-highlight').forEach(el=>el.classList.remove('missed-highlight'));
 }
 
-/* ═══════════════════════════════════════════════════
-   IN-APP NOTIFICATION
-═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+// IN-APP NOTIFICATION
+// ═══════════════════════════════════════════
+let inAppTimeout=null;
 function showInAppNotif(icon,title,msg){
   document.getElementById('inapp-icon').textContent=icon;
   document.getElementById('inapp-title').textContent=title;
   document.getElementById('inapp-msg').textContent=msg||'';
-  const el=document.getElementById('inapp-notif');
-  el.classList.add('show');
-  clearTimeout(inAppTimeout);
-  inAppTimeout=setTimeout(closeInApp,7000);
+  const el=document.getElementById('inapp-notif');el.classList.add('show');
+  clearTimeout(inAppTimeout);inAppTimeout=setTimeout(closeInApp,7000);
 }
-function closeInApp(){ document.getElementById('inapp-notif').classList.remove('show'); }
+function closeInApp(){document.getElementById('inapp-notif').classList.remove('show');}
 
-/* ═══════════════════════════════════════════════════
-   HOME REMINDERS PANEL
-═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+// HOME REMINDERS PANEL
+// ═══════════════════════════════════════════
 function renderHomeReminders(){
-  const list=document.getElementById('home-rem-list');
-  const count=document.getElementById('home-rem-count');
-  if(!list) return;
-  const now=new Date(), curH=now.getHours(), curM=now.getMinutes(), curMin=curH*60+curM, today=now.getDay();
+  const list=document.getElementById('home-rem-list');const count=document.getElementById('home-rem-count');if(!list)return;
+  const now=new Date(),curH=now.getHours(),curM=now.getMinutes(),curMin=curH*60+curM,today=now.getDay();
   const active=(state.reminders||[]).filter(r=>r.enabled&&r.days.includes(today));
-  count.textContent=active.length;
-  list.innerHTML='';
-  if(!active.length){
-    list.innerHTML='<div class="home-rem-empty">No reminders scheduled for today.<br><small>Go to 🔔 Reminders tab to add some.</small></div>';
-    return;
-  }
+  count.textContent=active.length;list.innerHTML='';
+  if(!active.length){list.innerHTML='<div class="home-rem-empty">No reminders for today.<br><small>Go to 🔔 Reminders to add some.</small></div>';return;}
   const sorted=[...active].sort((a,b)=>a.time.localeCompare(b.time));
   sorted.forEach(r=>{
-    const [hh,mm]=r.time.split(':').map(Number);
-    const remMin=hh*60+mm, diff=remMin-curMin;
-    const h12=((hh%12)||12), timeStr=h12+':'+String(mm).padStart(2,'0')+' '+(hh<12?'AM':'PM');
-    let statusCls='upcoming', statusTxt='';
+    const [hh,mm]=r.time.split(':').map(Number),remMin=hh*60+mm,diff=remMin-curMin;
+    const h12=((hh%12)||12),timeStr=h12+':'+String(mm).padStart(2,'0')+' '+(hh<12?'AM':'PM');
+    let statusCls='upcoming',statusTxt='';
     if(diff<0){statusCls='done';statusTxt='Done';}
     else if(diff===0){statusTxt='Now!';}
     else if(diff<=60){statusTxt='In '+diff+'m';}
     else{statusTxt=timeStr;}
-    const row=document.createElement('div'); row.className='home-rem-item';
+    const row=document.createElement('div');row.className='home-rem-item';
     row.innerHTML=`<div class="home-rem-icon">${r.icon}</div><div class="home-rem-body"><div class="home-rem-name">${r.title}</div><div class="home-rem-time">⏰ ${timeStr}${r.msg?' · '+r.msg:''}</div></div><span class="home-rem-status ${statusCls}">${statusTxt}</span>`;
     list.appendChild(row);
   });
 }
 
-/* ═══════════════════════════════════════════════════
-   REMINDER ENGINE
-═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+// REMINDER ENGINE
+// ═══════════════════════════════════════════
+let firedToday={};
 function updateNotifStatusUI(){
   const dot=document.getElementById('notif-dot'),txt=document.getElementById('notif-status-text'),btn=document.getElementById('notif-enable-btn');
-  if(!dot||!txt||!btn) return;
+  if(!dot||!txt||!btn)return;
   if(!('Notification' in window)){dot.className='notif-status-dot denied';txt.textContent='Notifications not supported.';btn.style.display='none';return;}
   const p=Notification.permission;
   if(p==='granted'){dot.className='notif-status-dot granted';txt.textContent='✅ Notifications enabled!';btn.style.display='none';}
   else if(p==='denied'){dot.className='notif-status-dot denied';txt.textContent='❌ Blocked — allow in browser settings.';btn.textContent='How to fix';btn.onclick=()=>showToast('Browser Settings → Site Settings → Notifications → Allow');}
   else{dot.className='notif-status-dot';txt.textContent='Tap Enable to receive reminders.';btn.style.display='block';}
 }
+
 function requestNotifPermission(){
-  if(!('Notification' in window)){showToast('Not supported in this browser');return;}
-  Notification.requestPermission().then(p=>{updateNotifStatusUI();if(p==='granted')showToast('🔔 Notifications enabled!');else showToast('Not allowed — check browser settings');});
+  if(!('Notification' in window)){showToast('Not supported');return;}
+  Notification.requestPermission().then(p=>{updateNotifStatusUI();if(p==='granted')showToast('🔔 Notifications enabled!');else showToast('Not allowed');});
 }
+
 function fireNotification(title,body,icon){
   showInAppNotif(icon||'🔔',title,body);
   renderHomeReminders();
@@ -1119,122 +1269,103 @@ function fireNotification(title,body,icon){
     try{new Notification(title,{body:body||'',icon:'/favicon.ico',tag:title});}catch(e){}
   }
 }
+
 function checkReminders(){
-  const now=new Date(), h=String(now.getHours()).padStart(2,'0'), m=String(now.getMinutes()).padStart(2,'0');
-  const time=h+':'+m, day=now.getDay(), date=todayKey();
+  const now=new Date(),h=String(now.getHours()).padStart(2,'0'),m=String(now.getMinutes()).padStart(2,'0');
+  const time=h+':'+m,day=now.getDay(),date=todayKey();
   (state.reminders||[]).forEach(r=>{
-    if(!r.enabled||!r.days.includes(day)||r.time!==time) return;
-    const key=r.id+'_'+date+'_'+time;
-    if(firedToday[key]) return;
-    firedToday[key]=true;
-    fireNotification(r.title,r.msg,r.icon);
+    if(!r.enabled||!r.days.includes(day)||r.time!==time)return;
+    const key=r.id+'_'+date+'_'+time;if(firedToday[key])return;
+    firedToday[key]=true;fireNotification(r.title,r.msg,r.icon);
   });
   checkMissedTasksBanner();
 }
-function startReminderEngine(){
-  setInterval(()=>{checkReminders();renderHomeReminders();},30000);
-  checkReminders();
-}
 
-/* ═══════════════════════════════════════════════════
-   REMINDERS PAGE UI
-═══════════════════════════════════════════════════ */
+function startReminderEngine(){setInterval(()=>{checkReminders();renderHomeReminders();},30000);checkReminders();}
+
+// ═══════════════════════════════════════════
+// REMINDERS PAGE UI
+// ═══════════════════════════════════════════
+let selectedDays=[0,1,2,3,4,5,6];
 function buildDaysPicker(){
-  const w=document.getElementById('days-picker'); if(!w) return;
-  w.innerHTML='';
+  const w=document.getElementById('days-picker');if(!w)return;w.innerHTML='';
   DAY_NAMES.forEach((d,i)=>{
-    const btn=document.createElement('button');
-    btn.className='day-btn'+(selectedDays.includes(i)?' sel':'');
-    btn.textContent=d; btn.type='button';
+    const btn=document.createElement('button');btn.className='day-btn'+(selectedDays.includes(i)?' sel':'');btn.textContent=d;btn.type='button';
     btn.onclick=()=>{selectedDays=selectedDays.includes(i)?selectedDays.filter(x=>x!==i):[...selectedDays,i];buildDaysPicker();};
     w.appendChild(btn);
   });
 }
+
 function buildPresetChips(){
-  const w=document.getElementById('preset-chips'); if(!w) return;
-  w.innerHTML='';
+  const w=document.getElementById('preset-chips');if(!w)return;w.innerHTML='';
   REMINDER_PRESETS.forEach(p=>{
-    const c=document.createElement('div'); c.className='preset-chip';
-    c.textContent=p.icon+' '+p.title.replace(/ [^\s]+$/,'');
-    c.onclick=()=>{
-      document.getElementById('r-title').value=p.title;
-      document.getElementById('r-msg').value=p.msg;
-      document.getElementById('r-time').value=p.time;
-      document.getElementById('r-icon').value=p.icon;
-      selectedDays=[...p.days]; buildDaysPicker();
-      showToast('✅ Preset loaded — tap Set Reminder');
-    };
+    const c=document.createElement('div');c.className='preset-chip';c.textContent=p.icon+' '+p.title.replace(/ [^\s]+$/,'');
+    c.onclick=()=>{document.getElementById('r-title').value=p.title;document.getElementById('r-msg').value=p.msg;document.getElementById('r-time').value=p.time;document.getElementById('r-icon').value=p.icon;selectedDays=[...p.days];buildDaysPicker();showToast('✅ Preset loaded');};
     w.appendChild(c);
   });
 }
+
 function renderReminderList(){
-  const list=document.getElementById('reminder-list'); if(!list) return;
-  list.innerHTML='';
-  const reminders=state.reminders||[];
-  const activeCount=reminders.filter(r=>r.enabled).length;
-  const tag=document.getElementById('r-count-tag'); if(tag) tag.textContent=activeCount+' active';
-  if(!reminders.length){
-    const e=document.createElement('div'); e.className='tempty';
-    e.textContent='No reminders yet. Add one below or pick a preset.';
-    list.appendChild(e); return;
-  }
+  const list=document.getElementById('reminder-list');if(!list)return;list.innerHTML='';
+  const reminders=state.reminders||[];const activeCount=reminders.filter(r=>r.enabled).length;
+  const tag=document.getElementById('r-count-tag');if(tag)tag.textContent=activeCount+' active';
+  if(!reminders.length){const e=document.createElement('div');e.className='tempty';e.textContent='No reminders yet.';list.appendChild(e);return;}
   reminders.forEach((r,i)=>{
-    const row=document.createElement('div'); row.className='reminder-item';
-    const allDays=r.days.length===7, isWD=[1,2,3,4,5].every(d=>r.days.includes(d))&&r.days.length===5;
+    const row=document.createElement('div');row.className='reminder-item';
+    const allDays=r.days.length===7,isWD=[1,2,3,4,5].every(d=>r.days.includes(d))&&r.days.length===5;
     const daysLabel=allDays?'Every day':isWD?'Weekdays':r.days.sort((a,b)=>a-b).map(d=>DAY_NAMES[d]).join(', ');
-    const hh=+r.time.split(':')[0], mm=r.time.split(':')[1];
+    const hh=+r.time.split(':')[0],mm=r.time.split(':')[1];
     const timeLabel=((hh%12)||12)+':'+mm+' '+(hh<12?'AM':'PM');
     row.innerHTML=`<div class="reminder-icon-box">${r.icon}</div><div class="reminder-body"><div class="reminder-title">${r.title}</div><div class="reminder-time-row">⏰ ${timeLabel} · ${daysLabel}</div>${r.msg?`<div class="reminder-msg-row">"${r.msg}"</div>`:''}</div><label class="r-toggle"><input type="checkbox" ${r.enabled?'checked':''} onchange="toggleReminder(${i},this.checked)"/><span class="r-slider"></span></label><button class="reminder-del-btn" onclick="deleteReminder(${i})">×</button>`;
     list.appendChild(row);
   });
 }
-function toggleReminder(i,val){state.reminders[i].enabled=val;save();renderReminderList();renderHomeReminders();showToast(val?'🔔 Reminder enabled':'🔕 Reminder paused');}
-function deleteReminder(i){if(!confirm('Delete this reminder?'))return;state.reminders.splice(i,1);save();renderReminderList();renderHomeReminders();showToast('🗑 Reminder deleted');}
+
+function toggleReminder(i,val){state.reminders[i].enabled=val;save();renderReminderList();renderHomeReminders();showToast(val?'🔔 Enabled':'🔕 Paused');}
+function deleteReminder(i){if(!confirm('Delete?'))return;state.reminders.splice(i,1);save();renderReminderList();renderHomeReminders();showToast('🗑 Deleted');}
 function addReminder(){
-  const title=document.getElementById('r-title').value.trim(), msg=document.getElementById('r-msg').value.trim();
-  const time=document.getElementById('r-time').value, icon=document.getElementById('r-icon').value;
-  if(!title){showToast('⚠️ Enter a reminder title');return;}
-  if(!time){showToast('⚠️ Pick a time');return;}
-  if(!selectedDays.length){showToast('⚠️ Select at least one day');return;}
+  const title=document.getElementById('r-title').value.trim(),msg=document.getElementById('r-msg').value.trim();
+  const time=document.getElementById('r-time').value,icon=document.getElementById('r-icon').value;
+  if(!title){showToast('⚠️ Enter a title');return;}if(!time){showToast('⚠️ Pick a time');return;}if(!selectedDays.length){showToast('⚠️ Select at least one day');return;}
   state.reminders.push({id:genId(),title,msg,time,icon,days:[...selectedDays],enabled:true});
-  save(); renderReminderList(); renderHomeReminders();
-  document.getElementById('r-title').value=''; document.getElementById('r-msg').value=''; document.getElementById('r-time').value='08:00';
-  selectedDays=[0,1,2,3,4,5,6]; buildDaysPicker();
-  showToast('✅ Reminder set for '+time+'!');
-  if('Notification' in window&&Notification.permission!=='granted') setTimeout(()=>showToast('💡 Tap Enable Notifications for real alerts!'),3200);
+  save();renderReminderList();renderHomeReminders();
+  document.getElementById('r-title').value='';document.getElementById('r-msg').value='';document.getElementById('r-time').value='08:00';
+  selectedDays=[0,1,2,3,4,5,6];buildDaysPicker();showToast('✅ Reminder set for '+time+'!');
 }
 
-/* ═══════════════════════════════════════════════════
-   BADGES & LEVELS
-═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+// BADGES & LEVELS
+// ═══════════════════════════════════════════
 const BADGES=[
-  {id:'first_step', icon:'👣', name:'First Step',    desc:'Complete your first task',       condition:s=>s.totalPts>=3},
-  {id:'early_bird', icon:'🐦', name:'Early Bird',    desc:'Complete full morning routine',  condition:s=>['lemon','almonds','walnuts','amla'].every(k=>s.checks[k])},
-  {id:'skin_care',  icon:'✨', name:'Glow Up',       desc:'Complete skin care routine',     condition:s=>['facewash_am','moisturizer','sunscreen'].every(k=>s.checks[k])},
-  {id:'hydrated',   icon:'💧', name:'Pool Master',   desc:'Fill the water pool!',           condition:s=>s.water>=11},
-  {id:'streak3',    icon:'🔥', name:'3-Day Streak',  desc:'Study 3 days in a row',          condition:s=>s.studyStreak>=3},
-  {id:'streak7',    icon:'💪', name:'Week Warrior',  desc:'Study 7 days in a row',          condition:s=>s.studyStreak>=7},
-  {id:'streak14',   icon:'🚀', name:'Fortnight Fire',desc:'Study 14 days in a row',         condition:s=>s.studyStreak>=14},
-  {id:'streak30',   icon:'🏆', name:'Monthly Legend',desc:'Study 30 days in a row',         condition:s=>s.studyStreak>=30},
-  {id:'pts100',     icon:'⭐', name:'Century',       desc:'Earn 100 total points',          condition:s=>s.totalPts>=100},
-  {id:'pts500',     icon:'🌟', name:'500 Club',      desc:'Earn 500 total points',          condition:s=>s.totalPts>=500},
-  {id:'eng_reader', icon:'📖', name:'English Reader',desc:'Save 5 English entries',         condition:s=>(s.eng||[]).length>=5},
-  {id:'night_owl',  icon:'🌃', name:'Night Owl',     desc:'Complete full night routine',    condition:s=>['facewash_pm','hair_tablets','revision','sleep'].every(k=>s.checks[k])},
-  {id:'junk_hero',  icon:'🥗', name:'Junk Hero',     desc:'Keep junk under limit for a month', condition:s=>getJunkCountForMonth(mkey(new Date().getFullYear(),new Date().getMonth()))<=3},
+  {id:'first_step',icon:'👣',name:'First Step',desc:'Complete your first task',condition:s=>s.totalPts>=3},
+  {id:'early_bird',icon:'🐦',name:'Early Bird',desc:'Complete full morning routine',condition:s=>['lemon','almonds','walnuts','amla'].every(k=>s.checks[k])},
+  {id:'skin_care',icon:'✨',name:'Glow Up',desc:'Complete skin care routine',condition:s=>['facewash_am','moisturizer','sunscreen'].every(k=>s.checks[k])},
+  {id:'hydrated',icon:'💧',name:'Pool Master',desc:'Fill the water pool!',condition:s=>s.water>=11},
+  {id:'streak3',icon:'🔥',name:'3-Day Streak',desc:'Study 3 days in a row',condition:s=>s.studyStreak>=3},
+  {id:'streak7',icon:'💪',name:'Week Warrior',desc:'Study 7 days in a row',condition:s=>s.studyStreak>=7},
+  {id:'streak14',icon:'🚀',name:'Fortnight Fire',desc:'Study 14 days in a row',condition:s=>s.studyStreak>=14},
+  {id:'streak30',icon:'🏆',name:'Monthly Legend',desc:'Study 30 days in a row',condition:s=>s.studyStreak>=30},
+  {id:'pts100',icon:'⭐',name:'Century',desc:'Earn 100 total points',condition:s=>s.totalPts>=100},
+  {id:'pts500',icon:'🌟',name:'500 Club',desc:'Earn 500 total points',condition:s=>s.totalPts>=500},
+  {id:'eng_reader',icon:'📖',name:'English Reader',desc:'Save 5 English entries',condition:s=>(s.eng||[]).length>=5},
+  {id:'night_owl',icon:'🌃',name:'Night Owl',desc:'Complete full night routine',condition:s=>['facewash_pm','hair_tablets','revision','sleep'].every(k=>s.checks[k])},
 ];
+
 const LEVELS=[
-  {min:0,   label:'🌱 Beginner',  next:50},
-  {min:50,  label:'🌿 Growing',   next:150},
-  {min:150, label:'💪 Consistent',next:300},
-  {min:300, label:'🔥 Dedicated', next:500},
-  {min:500, label:'⭐ Advanced',  next:800},
-  {min:800, label:'🚀 Elite',     next:1200},
-  {min:1200,label:'🏆 Legend',    next:9999},
+  {min:0,label:'🌱 Beginner',next:50},
+  {min:50,label:'🌿 Growing',next:150},
+  {min:150,label:'💪 Consistent',next:300},
+  {min:300,label:'🔥 Dedicated',next:500},
+  {min:500,label:'⭐ Advanced',next:800},
+  {min:800,label:'🚀 Elite',next:1200},
+  {min:1200,label:'🏆 Legend',next:9999},
 ];
-function getLevel(pts){ for(let i=LEVELS.length-1;i>=0;i--){if(pts>=LEVELS[i].min)return LEVELS[i];}return LEVELS[0]; }
+
+function getLevel(pts){for(let i=LEVELS.length-1;i>=0;i--){if(pts>=LEVELS[i].min)return LEVELS[i];}return LEVELS[0];}
+
 function updateReward(){
-  const pts=state.totalPts||0, lv=getLevel(pts);
-  const range=lv.next-lv.min, progress=range>0?Math.min(100,Math.round((pts-lv.min)/range*100)):100;
+  const pts=state.totalPts||0,lv=getLevel(pts);
+  const range=lv.next-lv.min,progress=range>0?Math.min(100,Math.round((pts-lv.min)/range*100)):100;
   document.getElementById('level-bar-fill').style.width=progress+'%';
   document.getElementById('pts-label').textContent=pts+' pts';
   document.getElementById('level-badge').textContent=lv.label;
@@ -1242,51 +1373,45 @@ function updateReward(){
   document.getElementById('reward-msg').textContent=msgs[Math.min(4,Math.floor(progress/25))];
   checkBadges();
 }
+
 function checkBadges(){
   BADGES.forEach(b=>{
     if(!state.earnedBadges.includes(b.id)){
-      try{ if(b.condition(state)){ state.earnedBadges.push(b.id); showToast('🎖 New badge: '+b.name+' '+b.icon); confetti(); save(); } }catch(e){}
+      try{if(b.condition(state)){state.earnedBadges.push(b.id);showToast('🎖 New badge: '+b.name+' '+b.icon);confetti();save();}}catch(e){}
     }
   });
 }
+
 function openBadges(){
-  const grid=document.getElementById('badge-grid'); grid.innerHTML='';
-  BADGES.forEach(b=>{
-    const earned=state.earnedBadges.includes(b.id);
-    const d=document.createElement('div'); d.className='badge-card'+(earned?' earned':'');
-    d.innerHTML=`<div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div class="badge-desc">${b.desc}</div>`;
-    grid.appendChild(d);
-  });
+  const grid=document.getElementById('badge-grid');grid.innerHTML='';
+  BADGES.forEach(b=>{const earned=state.earnedBadges.includes(b.id);const d=document.createElement('div');d.className='badge-card'+(earned?' earned':'');d.innerHTML=`<div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div class="badge-desc">${b.desc}</div>`;grid.appendChild(d);});
   document.getElementById('badges-modal').classList.add('open');
 }
-function closeBadges(){ document.getElementById('badges-modal').classList.remove('open'); }
 
-/* ═══════════════════════════════════════════════════
-   TODAY — DYNAMIC SECTIONS WITH REORDERING
-═══════════════════════════════════════════════════ */
+function closeBadges(){document.getElementById('badges-modal').classList.remove('open');}
+
+// ═══════════════════════════════════════════
+// TODAY SECTIONS WITH REORDERING
+// ═══════════════════════════════════════════
 function buildTodaySections(){
-  const container=document.getElementById('today-sections');
-  container.innerHTML='';
+  const container=document.getElementById('today-sections');container.innerHTML='';
   state.sections.forEach(sec=>{
     if(sec.tag==='special'){
-      if(sec.id==='water') container.appendChild(buildWaterSection());
-      if(sec.id==='evening') container.appendChild(buildEveningSection());
+      if(sec.id==='water')container.appendChild(buildWaterSection());
+      if(sec.id==='evening')container.appendChild(buildEveningSection());
       return;
     }
     const habits=state.habits.filter(h=>h.section===sec.id).sort((a,b)=>(a.order||0)-(b.order||0));
-    if(!habits.length) return;
-    const sc=document.createElement('div'); sc.className='sc';
+    if(!habits.length)return;
+    const sc=document.createElement('div');sc.className='sc';
     sc.innerHTML=`<div class="sh"><span class="si">${sec.icon}</span><span class="st">${sec.name}</span>${sec.tag?`<span class="stag">${sec.tag}</span>`:''}</div><div class="cl" id="sec-${sec.id}"></div>`;
     container.appendChild(sc);
     const cl=sc.querySelector('.cl');
     habits.forEach((h,idx)=>{
       const row=document.createElement('div');
       row.className='ci'+(state.checks[h.id]?' done':'');
-      row.dataset.key=h.id; row.dataset.pts=h.pts;
-      row.onclick=function(e){
-        if(e.target.closest('.reorder-btn')) return;
-        toggle(this);
-      };
+      row.dataset.key=h.id;row.dataset.pts=h.pts;
+      row.onclick=function(e){if(e.target.closest('.reorder-btn'))return;toggle(this);};
       row.innerHTML=`<div class="cb"></div><div class="cit"><div class="cil">${h.name}</div>${h.note?`<div class="cin">${h.note}</div>`:''}</div><div class="reorder-btns"><button class="reorder-btn" onclick="moveHabitUp('${h.id}')" ${idx===0?'disabled':''}>▲</button><button class="reorder-btn" onclick="moveHabitDown('${h.id}')" ${idx===habits.length-1?'disabled':''}>▼</button></div>`;
       cl.appendChild(row);
     });
@@ -1294,31 +1419,24 @@ function buildTodaySections(){
 }
 
 function moveHabitUp(id){
-  const habit=state.habits.find(h=>h.id===id); if(!habit) return;
+  const habit=state.habits.find(h=>h.id===id);if(!habit)return;
   const siblings=state.habits.filter(h=>h.section===habit.section).sort((a,b)=>(a.order||0)-(b.order||0));
-  const idx=siblings.indexOf(habit);
-  if(idx<=0) return;
-  const prev=siblings[idx-1];
-  [habit.order,prev.order]=[prev.order,habit.order];
-  save(); buildTodaySections(); applyChecks(); showToast('⬆️ Moved up');
+  const idx=siblings.indexOf(habit);if(idx<=0)return;
+  const prev=siblings[idx-1];[habit.order,prev.order]=[prev.order,habit.order];
+  save();buildTodaySections();applyChecks();showToast('⬆️ Moved up');
 }
 
 function moveHabitDown(id){
-  const habit=state.habits.find(h=>h.id===id); if(!habit) return;
+  const habit=state.habits.find(h=>h.id===id);if(!habit)return;
   const siblings=state.habits.filter(h=>h.section===habit.section).sort((a,b)=>(a.order||0)-(b.order||0));
-  const idx=siblings.indexOf(habit);
-  if(idx>=siblings.length-1) return;
-  const next=siblings[idx+1];
-  [habit.order,next.order]=[next.order,habit.order];
-  save(); buildTodaySections(); applyChecks(); showToast('⬇️ Moved down');
+  const idx=siblings.indexOf(habit);if(idx>=siblings.length-1)return;
+  const next=siblings[idx+1];[habit.order,next.order]=[next.order,habit.order];
+  save();buildTodaySections();applyChecks();showToast('⬇️ Moved down');
 }
 
-/* ═══════════════════════════════════════════════════
-   WATER POOL — UPGRADED SWIMMER ANIMATION
-═══════════════════════════════════════════════════ */
-/* ═══════════════════════════════════════════
-   WATER TRACKER — OCEAN SUBMARINE
-═══════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+// ══ WATER TRACKER — OCEAN SUBMARINE ════════
+// ═══════════════════════════════════════════
 const WT_GOAL=11,WT_ML_EACH=300,WT_SCENE_H=200,WT_MAX_WH=WT_SCENE_H*0.50;
 const WT_SUB_X0=10,WT_SUB_X1=84,WT_SUB_Y0=8,WT_SUB_CLR=32;
 const WT_SUB_Y1=WT_MAX_WH-WT_SUB_CLR;
@@ -1424,8 +1542,11 @@ function wtApply(P){
   if(waterEl)waterEl.style.height=waterPct+'%';
   const sub=document.getElementById('wt-sub');
   if(sub){
-    if(P<=0){sub.classList.remove('wt-visible');sub.style.left=WT_SUB_X0+'%';sub.style.bottom=WT_SUB_Y0+'px';}
-    else{
+    if(P<=0){
+      sub.classList.remove('wt-visible');
+      sub.style.left=WT_SUB_X0+'%';
+      sub.style.bottom=WT_SUB_Y0+'px';
+    }else{
       sub.classList.add('wt-visible');
       const rawX=WT_SUB_X0+P*(WT_SUB_X1-WT_SUB_X0);
       const rawBottom=WT_SUB_Y0+P*(WT_SUB_Y1-WT_SUB_Y0);
@@ -1442,17 +1563,17 @@ function wtApply(P){
   const mlEl=document.getElementById('wt-ml-now'),stEl=document.getElementById('wt-status');
   if(mlEl)mlEl.textContent=(state.water*WT_ML_EACH)+'ml';
   if(stEl){
-    if(P===0)     {stEl.textContent='start drinking';   stEl.style.color='#aaa';}
-    else if(P<.30){stEl.textContent='keep going! 💪';   stEl.style.color='#4A90E2';}
+    if(P===0){stEl.textContent='start drinking';stEl.style.color='#aaa';}
+    else if(P<.30){stEl.textContent='keep going! 💪';stEl.style.color='#4A90E2';}
     else if(P<.70){stEl.textContent='halfway there! 🌊';stEl.style.color='#2B7AB8';}
-    else if(P<1)  {stEl.textContent='almost there! 🚀'; stEl.style.color='#1a5f8f';}
-    else          {stEl.textContent='goal reached! 🎉'; stEl.style.color='#27AE60';}
+    else if(P<1){stEl.textContent='almost there! 🚀';stEl.style.color='#1a5f8f';}
+    else{stEl.textContent='goal reached! 🎉';stEl.style.color='#27AE60';}
   }
   const light=document.getElementById('wt-peri-light'),svg=document.getElementById('wt-sub-svg');
   if(light&&svg){
-    if(P<.30)     {light.setAttribute('fill','#888888');light.setAttribute('r','2.5');svg.style.filter='none';}
-    else if(P<.70){light.setAttribute('fill','#F1C40F');light.setAttribute('r','3');  svg.style.filter='none';}
-    else          {light.setAttribute('fill','#FFFFFF'); light.setAttribute('r','3.5');svg.style.filter='url(#wt-glow) drop-shadow(0 0 5px rgba(255,240,100,0.9))';}
+    if(P<.30){light.setAttribute('fill','#888888');light.setAttribute('r','2.5');svg.style.filter='none';}
+    else if(P<.70){light.setAttribute('fill','#F1C40F');light.setAttribute('r','3');svg.style.filter='none';}
+    else{light.setAttribute('fill','#FFFFFF');light.setAttribute('r','3.5');svg.style.filter='url(#wt-glow) drop-shadow(0 0 5px rgba(255,240,100,0.9))';}
   }
   if(P>=1&&!wtComplete){
     wtComplete=true;
@@ -1521,480 +1642,314 @@ function renderWater(){
   wtApply(state.water/WT_GOAL);
   wtBuildGlasses();
 }
-/* ═══════════════════════════════════════════ */
-/* ═══════════════════════════════════════════════════
-   CHECKLIST
-═══════════════════════════════════════════════════ */
+
+// ═══════════════════════════════════════════
+// CHECKLIST
+// ═══════════════════════════════════════════
 function toggle(el){
   const wasDone=el.classList.contains('done');
   el.classList.toggle('done');
-  const k=el.dataset.key, pts=+(el.dataset.pts||0);
+  const k=el.dataset.key,pts=+(el.dataset.pts||0);
   state.checks[k]=el.classList.contains('done');
-  if(!wasDone&&state.checks[k]){ state.pts=Math.min(99999,state.pts+pts); state.totalPts=Math.min(99999,(state.totalPts||0)+pts); }
-  else if(wasDone&&!state.checks[k]) state.pts=Math.max(0,state.pts-pts);
-  updateProg(); updateReward(); checkStudyStreakUpdate(); save();
+  if(!wasDone&&state.checks[k]){state.pts=Math.min(99999,state.pts+pts);state.totalPts=Math.min(99999,(state.totalPts||0)+pts);}
+  else if(wasDone&&!state.checks[k])state.pts=Math.max(0,state.pts-pts);
+  updateProg();updateReward();checkStudyStreakUpdate();save();
 }
-function applyChecks(){ document.querySelectorAll('.ci[data-key]').forEach(el=>el.classList.toggle('done',!!state.checks[el.dataset.key])); }
+
+function applyChecks(){document.querySelectorAll('.ci[data-key]').forEach(el=>el.classList.toggle('done',!!state.checks[el.dataset.key]));}
+
 function updateProg(){
-  const all=document.querySelectorAll('.ci[data-key]'), done=document.querySelectorAll('.ci[data-key].done');
+  const all=document.querySelectorAll('.ci[data-key]'),done=document.querySelectorAll('.ci[data-key].done');
   const pct=all.length?Math.round(done.length/all.length*100):0;
-  const f=document.getElementById('prog-fill');
-  f.style.width=pct+'%';
-  f.style.background=pct<50?'#D97706':pct<100?'#059669':'#047857';
+  const f=document.getElementById('prog-fill');f.style.width=pct+'%';f.style.background=pct<50?'#D97706':pct<100?'#059669':'#047857';
   document.getElementById('prog-text').textContent=done.length+'/'+all.length;
 }
 
-/* ═══════════════════════════════════════════════════
-   EVENING SECTION
-═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+// EVENING SECTION
+// ═══════════════════════════════════════════
 function buildEveningSection(){
-  const sc=document.createElement('div'); sc.className='sc';
+  const sc=document.createElement('div');sc.className='sc';
   const weekend=isWeekend();
-  const tagStyle=weekend?'style="background:#FEF3C7;border-color:#FDE68A;color:#92400E;"':'';
-  sc.innerHTML=`<div class="sh"><span class="si">🌇</span><span class="st">Evening</span><span class="stag" ${tagStyle}>${weekend?'Weekend 🏃':'before 6 pm'}</span></div><div class="cl" id="eve-list"></div>`;
+  sc.innerHTML=`<div class="sh"><span class="si">🌇</span><span class="st">Evening</span><span class="stag">${weekend?'Weekend 🏃':'before 6 pm'}</span></div><div class="cl" id="eve-list"></div>`;
   setTimeout(()=>{
-    const list=document.getElementById('eve-list'); if(!list) return;
+    const list=document.getElementById('eve-list');if(!list)return;
     list.innerHTML=weekend
-      ?`<div class="ci" data-key="steps" data-pts="8" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">10,000 steps today</div><div class="cin">Weekend challenge!</div></div></div>
-<div class="ci" data-key="seeds" data-pts="3" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Fruit or seeds</div><div class="cin">1 spoon pumpkin / flax / chia</div></div></div>`
+      ?`<div class="ci" data-key="steps" data-pts="8" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">10,000 steps today</div><div class="cin">Weekend challenge!</div></div></div><div class="ci" data-key="seeds" data-pts="3" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Fruit or seeds</div><div class="cin">1 spoon pumpkin / flax / chia</div></div></div>`
       :`<div class="ci" data-key="seeds" data-pts="3" onclick="toggle(this)"><div class="cb"></div><div class="cit"><div class="cil">Fruit or seeds</div><div class="cin">1 spoon pumpkin / flax / chia</div></div></div>`;
     applyChecks();
   },0);
   return sc;
 }
 
-/* ═══════════════════════════════════════════════════
-   STREAK HERO
-═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+// STREAK HERO
+// ═══════════════════════════════════════════
 function updateStreakHero(){
   const s=state.studyStreak||0;
   const msgs=['Start studying to build your streak!','Good start! Keep going 💪','Great — '+s+' days strong 🔥','Unstoppable 🚀','Legend! '+s+' day streak 🏆'];
   const msgIdx=s===0?0:s<3?1:s<7?2:s<14?3:4;
   const fires=['🌱','🌱','💪','🔥','🏆'];
-  const el=document.getElementById('home-streak-num'); if(el) el.textContent=s;
-  const fi=document.getElementById('home-streak-fire'); if(fi) fi.textContent=fires[Math.min(4,msgIdx)];
-  const sb=document.getElementById('home-streak-sub'); if(sb) sb.textContent=msgs[msgIdx];
-  const sv=document.getElementById('study-streak-val'); if(sv) sv.textContent=s;
-  const sm=document.getElementById('study-streak-msg'); if(sm) sm.textContent=msgs[msgIdx];
+  const el=document.getElementById('home-streak-num');if(el)el.textContent=s;
+  const fi=document.getElementById('home-streak-fire');if(fi)fi.textContent=fires[Math.min(4,msgIdx)];
+  const sb=document.getElementById('home-streak-sub');if(sb)sb.textContent=msgs[msgIdx];
+  const sv=document.getElementById('study-streak-val');if(sv)sv.textContent=s;
+  const sm=document.getElementById('study-streak-msg');if(sm)sm.textContent=msgs[msgIdx];
   const hd=document.getElementById('home-streak-dots');
-  if(hd){ hd.innerHTML=''; for(let i=0;i<14;i++){ const d=document.createElement('div'); d.className='sd'+(i<Math.min(s,14)?' lit':''); hd.appendChild(d); } }
+  if(hd){hd.innerHTML='';for(let i=0;i<14;i++){const d=document.createElement('div');d.className='sd'+(i<Math.min(s,14)?' lit':'');hd.appendChild(d);}}
   const sd=document.getElementById('study-streak-dots');
   if(sd){
-    sd.innerHTML='';
-    const show=Math.min(s,14);
-    if(show===0){ const d=document.createElement('div'); d.style.cssText='font-size:12px;color:var(--muted);'; d.textContent='No streak yet — start today!'; sd.appendChild(d); }
-    else for(let i=0;i<show;i++){ const d=document.createElement('div'); d.style.cssText='width:14px;height:14px;border-radius:50%;background:#4F46E5;flex-shrink:0;'; sd.appendChild(d); }
+    sd.innerHTML='';const show=Math.min(s,14);
+    if(show===0){const d=document.createElement('div');d.style.cssText='font-size:12px;color:var(--muted);';d.textContent='No streak yet — start today!';sd.appendChild(d);}
+    else for(let i=0;i<show;i++){const d=document.createElement('div');d.style.cssText='width:14px;height:14px;border-radius:50%;background:#4F46E5;flex-shrink:0;';sd.appendChild(d);}
   }
 }
 
-/* ═══════════════════════════════════════════════════
-   JUNK FOOD TRACKER — UPGRADED
-═══════════════════════════════════════════════════ */
-function getJunkCountForMonth(monthKey){
-  return (state.junkLog||[]).filter(entry=>entry.date.substring(0,7)===monthKey).length;
-}
-
-function getLastJunkDate(){
-  const log=state.junkLog||[];
-  if(!log.length) return null;
-  const sorted=[...log].sort((a,b)=>b.date.localeCompare(a.date));
-  return sorted[0];
-}
-
-function hasJunkToday(){
-  const today=todayKey();
-  return (state.junkLog||[]).some(entry=>entry.date===today);
-}
-
-function logJunkUnit(){
-  if(!selectedJunkType){showToast('⚠️ Select a junk food type first');return;}
-  const mk=mkey(curJunkYear,curJunkMonth);
-  const count=getJunkCountForMonth(mk);
-  if(count>=3){showToast('🚫 Monthly limit reached! Cannot log more.');return;}
-  if(hasJunkToday()){showToast('⚠️ Already had junk today! Max 1 per day.');return;}
-  const typeData=JUNK_TYPES.find(t=>t.id===selectedJunkType);
-  if(!typeData) return;
-  const entry={id:genId(),date:todayKey(),item_type:selectedJunkType,unit_count:1,icon:typeData.icon};
-  state.junkLog.push(entry);
-  save(); renderJunkTracker();
-  showToast('✅ Logged: '+typeData.name);
-  selectedJunkType=null;
-  updateDateChipJunkWarn();
-}
-
-function deleteJunkEntry(id){
-  if(!confirm('Delete this junk food entry?')) return;
-  state.junkLog=state.junkLog.filter(e=>e.id!==id);
-  save(); renderJunkTracker();
-  showToast('🗑 Entry deleted');
-  updateDateChipJunkWarn();
-}
-
-function renderJunkTracker(){
-  const mk=mkey(curJunkYear,curJunkMonth);
-  document.getElementById('junk-month').textContent=MONTHS[curJunkMonth]+' '+curJunkYear;
-  
-  const count=getJunkCountForMonth(mk);
-  const remaining=Math.max(0,3-count);
-  const pct=Math.round(count/3*100);
-
-  // Summary card
-  const card=document.getElementById('junk-summary-card');
-  card.className='junk-summary-card';
-  if(count>=4) card.classList.add('limit-exceeded');
-  else if(count===3) card.classList.add('limit-reached');
-
-  document.getElementById('junk-count-big').innerHTML=count+' <span>/ 3 units</span>';
-  document.getElementById('junk-remaining-text').textContent=remaining+' unit'+(remaining===1?'':'s')+' remaining this month';
-
-  const statusPill=document.getElementById('junk-status-pill');
-  statusPill.className='junk-status-pill';
-  if(count>=4){ statusPill.classList.add('exceeded'); statusPill.textContent='🚫 EXCEEDED'; }
-  else if(count===3){ statusPill.classList.add('limit'); statusPill.textContent='⚠️ Limit'; }
-  else if(count>=2){ statusPill.classList.add('warn'); statusPill.textContent='⚠️ Warning'; }
-  else { statusPill.classList.add('ok'); statusPill.textContent='✅ Safe'; }
-
-  const bar=document.getElementById('junk-progress-fill');
-  bar.style.width=Math.min(100,pct)+'%';
-  bar.style.background=count>=4?'var(--red)':count===3?'#D97706':count>=2?'#F59E0B':'var(--green)';
-
-  // Warning message
-  const warnBox=document.getElementById('junk-warn-msg-box');
-  warnBox.innerHTML='';
-  if(count>=4){
-    const msg=document.createElement('div'); msg.className='junk-warn-msg danger';
-    msg.textContent='🚫 Limit exceeded — avoid further intake this month!';
-    warnBox.appendChild(msg);
-  } else if(count===3){
-    const msg=document.createElement('div'); msg.className='junk-warn-msg warn';
-    msg.textContent='⚠️ Monthly junk food limit reached! No more this month.';
-    warnBox.appendChild(msg);
-  }
-
-  // Last consumed info
-  const lastInfo=document.getElementById('junk-last-info');
-  lastInfo.innerHTML='';
-  const last=getLastJunkDate();
-  if(last){
-    const typeData=JUNK_TYPES.find(t=>t.id===last.item_type);
-    const span1=document.createElement('span');
-    span1.textContent='Last: '+fmtDate(last.date);
-    lastInfo.appendChild(span1);
-    if(typeData){
-      const span2=document.createElement('span');
-      span2.textContent=typeData.icon+' '+typeData.name;
-      lastInfo.appendChild(span2);
-    }
-  }
-
-  // Today used bar
-  const todayBar=document.getElementById('junk-today-bar');
-  todayBar.classList.toggle('show',hasJunkToday());
-
-  // Junk type grid
-  const grid=document.getElementById('junk-type-grid');
-  grid.innerHTML='';
-  JUNK_TYPES.forEach(type=>{
-    const card=document.createElement('div');
-    card.className='junk-type-card';
-    if(selectedJunkType===type.id) card.classList.add('selected');
-    if(count>=3||hasJunkToday()) card.classList.add('disabled');
-    card.onclick=()=>{
-      if(count>=3||hasJunkToday()) return;
-      selectedJunkType=selectedJunkType===type.id?null:type.id;
-      renderJunkTracker();
-    };
-    card.innerHTML=`<div class="junk-type-icon">${type.icon}</div><div class="junk-type-name">${type.name}</div><div class="junk-type-qty">${type.qty}</div><div class="junk-type-equiv">${type.equiv}</div>`;
-    grid.appendChild(card);
-  });
-
-  // Log button
-  const logBtn=document.getElementById('junk-log-btn');
-  logBtn.disabled=!selectedJunkType||count>=3||hasJunkToday();
-  logBtn.textContent=selectedJunkType?'Log '+JUNK_TYPES.find(t=>t.id===selectedJunkType).name:'Select a junk food item to log';
-
-  // History
-  const monthEntries=(state.junkLog||[]).filter(e=>e.date.substring(0,7)===mk).sort((a,b)=>b.date.localeCompare(a.date));
-  document.getElementById('junk-history-month-tag').textContent=monthEntries.length+' entries';
-  const histList=document.getElementById('junk-history-list');
-  histList.innerHTML='';
-  if(!monthEntries.length){
-    const e=document.createElement('div'); e.className='tempty'; e.textContent='No junk food logged this month. Keep it clean!';
-    histList.appendChild(e);
-  } else {
-    monthEntries.forEach(entry=>{
-      const typeData=JUNK_TYPES.find(t=>t.id===entry.item_type);
-      const row=document.createElement('div'); row.className='junk-history-item';
-      row.innerHTML=`<div class="junk-history-icon">${entry.icon||typeData?.icon||'🍟'}</div><div class="junk-history-body"><div class="junk-history-name">${typeData?typeData.name:entry.item_type}</div><div class="junk-history-date">${fmtDate(entry.date)}</div></div><button class="junk-history-del" onclick="deleteJunkEntry('${entry.id}')">×</button>`;
-      histList.appendChild(row);
-    });
-  }
-}
-
-function changeMonth(dir){ curJunkMonth+=dir; if(curJunkMonth>11){curJunkMonth=0;curJunkYear++;} if(curJunkMonth<0){curJunkMonth=11;curJunkYear--;} renderJunkTracker(); }
-
-/* ═══════════════════════════════════════════════════
-   BIRYANI TRACKER
-═══════════════════════════════════════════════════ */
-function getBiry(y,m){ const k=mkey(y,m); if(!state.biry)state.biry={}; if(!state.biry[k])state.biry[k]=0; return state.biry[k]; }
-function setBiry(y,m,v){ const k=mkey(y,m); if(!state.biry)state.biry={}; state.biry[k]=v; }
-function renderBiry(){
-  document.getElementById('biry-month').textContent=MONTHS[curBiryMonth]+' '+curBiryYear;
-  const count=getBiry(curBiryYear,curBiryMonth); const cards=document.getElementById('biry-cards'); cards.innerHTML='';
-  const card=document.createElement('div'); card.className='jcard'+(count>=2?' danger':count>0?' warn':'');
-  const dots=[]; for(let i=0;i<2;i++) dots.push(`<div class="jdot${i<count?' filled':''}" onclick="toggleBiry(${i})"></div>`);
-  if(count<2) dots.push(`<div class="jdot add" onclick="addBiry()"></div>`);
-  card.innerHTML=`<div class="jcrow"><span class="jcname">🍛 Biryani</span><div class="jdots">${dots.join('')}</div></div><div class="jcnote">Max 2/month · Enjoy every bite!</div>`;
-  cards.appendChild(card);
-  const tot=document.getElementById('biry-total'); tot.className='jtotal'+(count>=2?' danger':'');
-  tot.innerHTML=count>=2?'<strong>🔴 Biryani quota full! 🍛🍛</strong>':'Eaten: <strong>'+count+' / 2</strong> · '+(2-count)+' remaining '+(count===0?'🟢':'🟡');
-}
-function addBiry(){ const c=getBiry(curBiryYear,curBiryMonth); if(c>=2) return; setBiry(curBiryYear,curBiryMonth,c+1); save(); renderBiry(); }
-function toggleBiry(idx){ const c=getBiry(curBiryYear,curBiryMonth); if(idx===c-1&&c>0)setBiry(curBiryYear,curBiryMonth,c-1); else if(c<2)setBiry(curBiryYear,curBiryMonth,c+1); save(); renderBiry(); }
-function changeBMonth(dir){ curBiryMonth+=dir; if(curBiryMonth>11){curBiryMonth=0;curBiryYear++;} if(curBiryMonth<0){curBiryMonth=11;curBiryYear--;} renderBiry(); }
-
-/* ═══════════════════════════════════════════════════
-   TOMORROW
-═══════════════════════════════════════════════════ */
-function buildTmrChips(){
-  const w=document.getElementById('tchips'); w.innerHTML='';
-  QUICK.forEach(q=>{ const c=document.createElement('div'); c.className='chip'; c.textContent='+ '+q; c.onclick=()=>{addTmrText(q);c.classList.add('used');}; w.appendChild(c); });
-}
-function renderTmr(){
-  const list=document.getElementById('tmr-list'); list.innerHTML='';
-  const tasks=state.tmr||[];
-  if(!tasks.length){ const e=document.createElement('div'); e.className='tempty'; e.textContent='No reminders yet.'; list.appendChild(e); return; }
-  tasks.forEach((t,i)=>{ const row=document.createElement('div'); row.className='ci'+(t.done?' done':''); row.innerHTML=`<div class="cb" onclick="toggleTmr(${i},this.parentElement)" style="cursor:pointer;margin-top:1px;"></div><div class="cit"><div class="cil">${t.text}</div></div><button class="sdel" onclick="deleteTmr(${i})">×</button>`; list.appendChild(row); });
-  document.querySelectorAll('.chip').forEach(c=>{ const lbl=c.textContent.replace('+ ',''); c.classList.toggle('used',tasks.some(t=>t.text===lbl)); });
-}
-function toggleTmr(i,row){ row.classList.toggle('done'); state.tmr[i].done=row.classList.contains('done'); save(); }
-function deleteTmr(i){ state.tmr.splice(i,1); renderTmr(); save(); }
-function addTmrText(text){ const t=text.trim(); if(!t||state.tmr.find(x=>x.text===t)) return; state.tmr.push({text:t,done:false}); renderTmr(); save(); }
-function addTmr(){ const inp=document.getElementById('tmr-input'); addTmrText(inp.value); inp.value=''; }
-
-/* ═══════════════════════════════════════════════════
-   STUDY
-═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════
+// STUDY
+// ═══════════════════════════════════════════
+let selStudyCat='';
 function addHour(delta){
   state.studyHrs=Math.max(0,Math.min(4,(state.studyHrs||0)+delta));
-  if(state.studyHrs>=4&&!state.checks['study1']){ state.checks['study1']=true; state.pts+=10; state.totalPts=(state.totalPts||0)+10; applyChecks(); updateProg(); updateReward(); }
-  if(state.studyHrs<4&&state.checks['study1']) { state.checks['study1']=false; state.pts=Math.max(0,state.pts-10); applyChecks(); updateProg(); updateReward(); }
-  updateStudyHrsBar(); checkStudyStreakUpdate(); save();
+  if(state.studyHrs>=4&&!state.checks['study1']){state.checks['study1']=true;state.pts+=10;state.totalPts=(state.totalPts||0)+10;applyChecks();updateProg();updateReward();}
+  if(state.studyHrs<4&&state.checks['study1']){state.checks['study1']=false;state.pts=Math.max(0,state.pts-10);applyChecks();updateProg();updateReward();}
+  updateStudyHrsBar();checkStudyStreakUpdate();save();
 }
+
 function updateStudyHrsBar(){
-  const hrs=state.studyHrs||0, pct=Math.round(hrs/4*100);
-  const bar=document.getElementById('study-hrs-bar'), lbl=document.getElementById('study-hrs-label');
-  if(bar){ bar.style.width=pct+'%'; bar.style.background=pct>=100?'#059669':'#4F46E5'; }
-  if(lbl) lbl.textContent=hrs+' / 4 hrs';
+  const hrs=state.studyHrs||0,pct=Math.round(hrs/4*100);
+  const bar=document.getElementById('study-hrs-bar'),lbl=document.getElementById('study-hrs-label');
+  if(bar){bar.style.width=pct+'%';bar.style.background=pct>=100?'#059669':'#4F46E5';}
+  if(lbl)lbl.textContent=hrs+' / 4 hrs';
 }
+
 function checkStudyStreakUpdate(){
-  const today=todayKey(); if(state.lastStudyDate===today) return;
-  const didStudy=state.checks['study1']||state.checks['study2']||(state.studyHrs>0); if(!didStudy) return;
-  if(state.lastStudyDate){ const diff=Math.round((new Date(today)-new Date(state.lastStudyDate))/86400000); state.studyStreak=diff===1?(state.studyStreak||0)+1:1; } else state.studyStreak=1;
-  state.lastStudyDate=today; save(); updateStreakHero();
+  const today=todayKey();if(state.lastStudyDate===today)return;
+  const didStudy=state.checks['study1']||state.checks['study2']||(state.studyHrs>0);if(!didStudy)return;
+  if(state.lastStudyDate){const diff=Math.round((new Date(today)-new Date(state.lastStudyDate))/86400000);state.studyStreak=diff===1?(state.studyStreak||0)+1:1;}else state.studyStreak=1;
+  state.lastStudyDate=today;save();updateStreakHero();
 }
+
 function buildStudyCats(){
-  const w=document.getElementById('study-cats'); w.innerHTML='';
-  STUDY_CATS.forEach(c=>{ const el=document.createElement('div'); el.className='scat'+(selStudyCat===c?' active':''); el.textContent=c; el.onclick=()=>{selStudyCat=selStudyCat===c?'':c;buildStudyCats();renderStudyList();}; w.appendChild(el); });
+  const w=document.getElementById('study-cats');w.innerHTML='';
+  STUDY_CATS.forEach(c=>{const el=document.createElement('div');el.className='scat'+(selStudyCat===c?' active':'');el.textContent=c;el.onclick=()=>{selStudyCat=selStudyCat===c?'':c;buildStudyCats();renderStudyList();};w.appendChild(el);});
 }
+
 function renderStudyList(){
-  const list=document.getElementById('study-list'); list.innerHTML='';
+  const list=document.getElementById('study-list');list.innerHTML='';
   const tasks=(state.study||[]).filter(t=>!selStudyCat||t.cat===selStudyCat);
-  if(!tasks.length){ const e=document.createElement('div'); e.className='tempty'; e.textContent='No study tasks yet.'; list.appendChild(e); return; }
-  tasks.forEach(t=>{ const i=state.study.indexOf(t); const row=document.createElement('div'); row.className='stask'+(t.done?' done':''); row.innerHTML=`<div class="scb" onclick="toggleStudy(${i},this.parentElement)"></div><div class="stlbl">${t.text}${t.cat?`<span class="scat-pill">${t.cat}</span>`:''}</div><button class="sdel" onclick="deleteStudy(${i})">×</button>`; list.appendChild(row); });
+  if(!tasks.length){const e=document.createElement('div');e.className='tempty';e.textContent='No study tasks yet.';list.appendChild(e);return;}
+  tasks.forEach(t=>{const i=state.study.indexOf(t);const row=document.createElement('div');row.className='stask'+(t.done?' done':'');row.innerHTML=`<div class="scb" onclick="toggleStudy(${i},this.parentElement)"></div><div class="stlbl">${t.text}${t.cat?`<span class="scat-pill">${t.cat}</span>`:''}</div><button class="sdel" onclick="deleteStudy(${i})">×</button>`;list.appendChild(row);});
 }
-function toggleStudy(i,row){ row.classList.toggle('done'); state.study[i].done=row.classList.contains('done'); if(state.study[i].done){state.pts+=5;state.totalPts=(state.totalPts||0)+5;}else state.pts=Math.max(0,state.pts-5); updateReward(); checkStudyStreakUpdate(); save(); }
-function deleteStudy(i){ state.study.splice(i,1); renderStudyList(); save(); }
-function addStudyTask(){ const inp=document.getElementById('study-input'),t=inp.value.trim(); if(!t) return; state.study.push({text:t,cat:selStudyCat,done:false}); inp.value=''; renderStudyList(); save(); }
 
-/* ═══════════════════════════════════════════════════
-   ENGLISH
-═══════════════════════════════════════════════════ */
-function updateEngStreak(){ document.getElementById('streak-val').textContent=(state.engStreak||0)+' days'; }
+function toggleStudy(i,row){row.classList.toggle('done');state.study[i].done=row.classList.contains('done');if(state.study[i].done){state.pts+=5;state.totalPts=(state.totalPts||0)+5;}else state.pts=Math.max(0,state.pts-5);updateReward();checkStudyStreakUpdate();save();}
+function deleteStudy(i){state.study.splice(i,1);renderStudyList();save();}
+function addStudyTask(){const inp=document.getElementById('study-input'),t=inp.value.trim();if(!t)return;state.study.push({text:t,cat:selStudyCat,done:false});inp.value='';renderStudyList();save();}
+
+// ═══════════════════════════════════════════
+// ENGLISH
+// ═══════════════════════════════════════════
+function updateEngStreak(){document.getElementById('streak-val').textContent=(state.engStreak||0)+' days';}
+
 function saveEngEntry(){
-  const text=document.getElementById('eng-text').value.trim(), note=document.getElementById('eng-note').value.trim();
-  if(!text) return;
-  const today=todayKey(); if(!state.eng) state.eng=[];
-  state.eng.unshift({date:today,text,note}); if(state.eng.length>30) state.eng.pop();
-  if(state.lastEngDate){ const diff=Math.round((new Date(today)-new Date(state.lastEngDate))/86400000); state.engStreak=diff===1?(state.engStreak||0)+1:1; } else state.engStreak=1;
+  const text=document.getElementById('eng-text').value.trim(),note=document.getElementById('eng-note').value.trim();if(!text)return;
+  const today=todayKey();if(!state.eng)state.eng=[];
+  state.eng.unshift({date:today,text,note});if(state.eng.length>30)state.eng.pop();
+  if(state.lastEngDate){const diff=Math.round((new Date(today)-new Date(state.lastEngDate))/86400000);state.engStreak=diff===1?(state.engStreak||0)+1:1;}else state.engStreak=1;
   state.lastEngDate=today;
-  document.getElementById('eng-text').value=''; document.getElementById('eng-note').value='';
-  state.pts+=7; state.totalPts=(state.totalPts||0)+7;
-  updateReward(); updateEngStreak(); renderEngHistory(); save();
+  document.getElementById('eng-text').value='';document.getElementById('eng-note').value='';
+  state.pts+=7;state.totalPts=(state.totalPts||0)+7;
+  updateReward();updateEngStreak();renderEngHistory();save();
 }
-function renderEngHistory(){
-  const h=document.getElementById('eng-history'); h.innerHTML='';
-  const entries=state.eng||[];
-  if(!entries.length){ const e=document.createElement('div'); e.className='eng-empty'; e.textContent='No entries yet.'; h.appendChild(e); return; }
-  entries.slice(0,10).forEach((e,i)=>{ const d=document.createElement('div'); d.className='eng-entry'; const ds=new Date(e.date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}); d.innerHTML=`<div class="eng-date">${ds}<button class="eng-del" onclick="deleteEng(${i})">×</button></div><div class="eng-text">${e.text.substring(0,300)}${e.text.length>300?'...':''}</div>${e.note?`<div class="eng-note">📝 ${e.note}</div>`:''}`; h.appendChild(d); });
-}
-function deleteEng(i){ state.eng.splice(i,1); renderEngHistory(); save(); }
 
-/* ═══════════════════════════════════════════════════
-   SETTINGS
-═══════════════════════════════════════════════════ */
-function buildSettingsPage(){
-  buildSectionLabels();
-  buildSettingsHabitList();
-  buildSettingsSectionsList();
-  populateSectionSelects();
+function renderEngHistory(){
+  const h=document.getElementById('eng-history');h.innerHTML='';
+  const entries=state.eng||[];
+  if(!entries.length){const e=document.createElement('div');e.className='eng-empty';e.textContent='No entries yet.';h.appendChild(e);return;}
+  entries.slice(0,10).forEach((e,i)=>{const d=document.createElement('div');d.className='eng-entry';const ds=new Date(e.date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});d.innerHTML=`<div class="eng-date">${ds}<button class="eng-del" onclick="deleteEng(${i})">×</button></div><div class="eng-text">${e.text.substring(0,300)}${e.text.length>300?'...':''}</div>${e.note?`<div class="eng-note">📝 ${e.note}</div>`:''}`; h.appendChild(d);});
 }
+
+function deleteEng(i){state.eng.splice(i,1);renderEngHistory();save();}
+
+// ═══════════════════════════════════════════
+// TOMORROW
+// ═══════════════════════════════════════════
+function buildTmrChips(){
+  const w=document.getElementById('tchips');w.innerHTML='';
+  QUICK.forEach(q=>{const c=document.createElement('div');c.className='chip';c.textContent='+ '+q;c.onclick=()=>{addTmrText(q);c.classList.add('used');};w.appendChild(c);});
+}
+
+function renderTmr(){
+  const list=document.getElementById('tmr-list');list.innerHTML='';
+  const tasks=state.tmr||[];
+  if(!tasks.length){const e=document.createElement('div');e.className='tempty';e.textContent='No reminders yet.';list.appendChild(e);return;}
+  tasks.forEach((t,i)=>{const row=document.createElement('div');row.className='ci'+(t.done?' done':'');row.innerHTML=`<div class="cb" onclick="toggleTmr(${i},this.parentElement)" style="cursor:pointer;margin-top:1px;"></div><div class="cit"><div class="cil">${t.text}</div></div><button class="sdel" onclick="deleteTmr(${i})">×</button>`;list.appendChild(row);});
+  document.querySelectorAll('.chip').forEach(c=>{const lbl=c.textContent.replace('+ ','');c.classList.toggle('used',tasks.some(t=>t.text===lbl));});
+}
+
+function toggleTmr(i,row){row.classList.toggle('done');state.tmr[i].done=row.classList.contains('done');save();}
+function deleteTmr(i){state.tmr.splice(i,1);renderTmr();save();}
+function addTmrText(text){const t=text.trim();if(!t||state.tmr.find(x=>x.text===t))return;state.tmr.push({text:t,done:false});renderTmr();save();}
+function addTmr(){const inp=document.getElementById('tmr-input');addTmrText(inp.value);inp.value='';}
+
+// ═══════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════
+let editingHabitId=null,settingsFilter='all';
+
+function buildSettingsPage(){buildSectionLabels();buildSettingsHabitList();buildSettingsSectionsList();populateSectionSelects();}
+
 function buildSectionLabels(){
-  const w=document.getElementById('settings-section-labels'); if(!w) return;
-  w.innerHTML='';
-  const all=document.createElement('span'); all.className='slabel'+(settingsFilter==='all'?' active':'');
-  all.textContent='All'; all.onclick=()=>{settingsFilter='all';buildSettingsPage();}; w.appendChild(all);
+  const w=document.getElementById('settings-section-labels');if(!w)return;w.innerHTML='';
+  const all=document.createElement('span');all.className='slabel'+(settingsFilter==='all'?' active':'');all.textContent='All';all.onclick=()=>{settingsFilter='all';buildSettingsPage();};w.appendChild(all);
   state.sections.forEach(sec=>{
-    if(sec.tag==='special') return;
-    const btn=document.createElement('span'); btn.className='slabel'+(settingsFilter===sec.id?' active':'');
-    btn.textContent=sec.icon+' '+sec.name;
-    btn.onclick=()=>{settingsFilter=sec.id;buildSettingsPage();}; w.appendChild(btn);
+    if(sec.tag==='special')return;
+    const btn=document.createElement('span');btn.className='slabel'+(settingsFilter===sec.id?' active':'');btn.textContent=sec.icon+' '+sec.name;btn.onclick=()=>{settingsFilter=sec.id;buildSettingsPage();};w.appendChild(btn);
   });
 }
+
 function buildSettingsHabitList(){
-  const w=document.getElementById('settings-habit-list'); if(!w) return; w.innerHTML='';
+  const w=document.getElementById('settings-habit-list');if(!w)return;w.innerHTML='';
   const filtered=state.habits.filter(h=>settingsFilter==='all'||h.section===settingsFilter).sort((a,b)=>(a.order||0)-(b.order||0));
-  if(!filtered.length){ const e=document.createElement('div'); e.className='tempty'; e.textContent='No habits here yet.'; w.appendChild(e); return; }
-  const grouped={}; filtered.forEach(h=>{ if(!grouped[h.section]) grouped[h.section]=[]; grouped[h.section].push(h); });
+  if(!filtered.length){const e=document.createElement('div');e.className='tempty';e.textContent='No habits here yet.';w.appendChild(e);return;}
+  const grouped={};filtered.forEach(h=>{if(!grouped[h.section])grouped[h.section]=[];grouped[h.section].push(h);});
   Object.keys(grouped).forEach(secId=>{
     const sec=state.sections.find(s=>s.id===secId);
-    const title=document.createElement('div'); title.className='settings-section-title';
-    title.textContent=(sec?sec.icon+' '+sec.name:secId); w.appendChild(title);
-    const list=document.createElement('div'); list.style.borderTop='1px solid var(--border)';
+    const title=document.createElement('div');title.className='settings-section-title';title.textContent=(sec?sec.icon+' '+sec.name:secId);w.appendChild(title);
+    const list=document.createElement('div');list.style.borderTop='1px solid var(--border)';
     grouped[secId].forEach(h=>{
-      const row=document.createElement('div'); row.className='habit-item';
+      const row=document.createElement('div');row.className='habit-item';
       row.innerHTML=`<span style="color:var(--muted);font-size:16px;flex-shrink:0;">⠿</span><div class="habit-info"><div class="habit-name">${h.name}</div>${h.note?`<div class="habit-meta">${h.note}</div>`:''}</div><span class="habit-pts-badge">+${h.pts}pts</span><button class="habit-edit-btn" onclick="openEditModal('${h.id}')">Edit</button><button class="habit-del-btn" onclick="deleteHabit('${h.id}')">×</button>`;
       list.appendChild(row);
     });
     w.appendChild(list);
   });
 }
+
 function buildSettingsSectionsList(){
-  const w=document.getElementById('settings-sections-list'); if(!w) return; w.innerHTML='';
+  const w=document.getElementById('settings-sections-list');if(!w)return;w.innerHTML='';
   state.sections.forEach(sec=>{
-    const row=document.createElement('div'); row.className='habit-item';
+    const row=document.createElement('div');row.className='habit-item';
     const habitCount=state.habits.filter(h=>h.section===sec.id).length;
     row.innerHTML=`<span class="si">${sec.icon}</span><div class="habit-info"><div class="habit-name">${sec.name}</div><div class="habit-meta">${habitCount} habits${sec.tag&&sec.tag!=='special'?' · '+sec.tag:''}</div></div>${sec.tag==='special'?'<span style="font-size:11px;color:var(--muted);">built-in</span>':`<button class="habit-del-btn" onclick="deleteSection('${sec.id}')">×</button>`}`;
     w.appendChild(row);
   });
 }
+
 function populateSectionSelects(){
   ['new-habit-section','edit-habit-section'].forEach(id=>{
-    const sel=document.getElementById(id); if(!sel) return; sel.innerHTML='';
-    state.sections.forEach(sec=>{
-      if(sec.tag==='special') return;
-      const opt=document.createElement('option'); opt.value=sec.id; opt.textContent=sec.icon+' '+sec.name; sel.appendChild(opt);
-    });
+    const sel=document.getElementById(id);if(!sel)return;sel.innerHTML='';
+    state.sections.forEach(sec=>{if(sec.tag==='special')return;const opt=document.createElement('option');opt.value=sec.id;opt.textContent=sec.icon+' '+sec.name;sel.appendChild(opt);});
   });
 }
+
 function addNewHabit(){
-  const name=document.getElementById('new-habit-name').value.trim(); if(!name){showToast('⚠️ Enter a habit name');return;}
-  const note=document.getElementById('new-habit-note').value.trim();
-  const section=document.getElementById('new-habit-section').value;
+  const name=document.getElementById('new-habit-name').value.trim();if(!name){showToast('⚠️ Enter a habit name');return;}
+  const note=document.getElementById('new-habit-note').value.trim(),section=document.getElementById('new-habit-section').value;
   const pts=Math.max(1,Math.min(20,+(document.getElementById('new-habit-pts').value)||3));
   const maxOrder=Math.max(0,...state.habits.filter(h=>h.section===section).map(h=>h.order||0));
   state.habits.push({id:genId(),section,name,note,pts,order:maxOrder+1});
-  save(); buildTodaySections(); applyChecks(); updateProg(); buildSettingsPage();
-  document.getElementById('new-habit-name').value=''; document.getElementById('new-habit-note').value='';
+  save();buildTodaySections();applyChecks();updateProg();buildSettingsPage();
+  document.getElementById('new-habit-name').value='';document.getElementById('new-habit-note').value='';
   showToast('✅ Habit added!');
 }
+
 function deleteHabit(id){
-  if(!confirm('Delete this habit?')) return;
-  state.habits=state.habits.filter(h=>h.id!==id); delete state.checks[id];
-  save(); buildTodaySections(); applyChecks(); updateProg(); buildSettingsPage();
-  showToast('🗑 Habit deleted');
+  if(!confirm('Delete this habit?'))return;
+  state.habits=state.habits.filter(h=>h.id!==id);delete state.checks[id];
+  save();buildTodaySections();applyChecks();updateProg();buildSettingsPage();showToast('🗑 Habit deleted');
 }
+
 function openEditModal(id){
-  editingHabitId=id; const h=state.habits.find(x=>x.id===id); if(!h) return;
+  editingHabitId=id;const h=state.habits.find(x=>x.id===id);if(!h)return;
   populateSectionSelects();
-  document.getElementById('edit-habit-name').value=h.name;
-  document.getElementById('edit-habit-note').value=h.note||'';
-  document.getElementById('edit-habit-section').value=h.section;
-  document.getElementById('edit-habit-pts').value=h.pts;
+  document.getElementById('edit-habit-name').value=h.name;document.getElementById('edit-habit-note').value=h.note||'';
+  document.getElementById('edit-habit-section').value=h.section;document.getElementById('edit-habit-pts').value=h.pts;
   document.getElementById('edit-modal').classList.add('open');
 }
-function closeEditModal(){ document.getElementById('edit-modal').classList.remove('open'); editingHabitId=null; }
+
+function closeEditModal(){document.getElementById('edit-modal').classList.remove('open');editingHabitId=null;}
+
 function saveEditHabit(){
-  if(!editingHabitId) return; const h=state.habits.find(x=>x.id===editingHabitId); if(!h) return;
+  if(!editingHabitId)return;const h=state.habits.find(x=>x.id===editingHabitId);if(!h)return;
   h.name=document.getElementById('edit-habit-name').value.trim()||h.name;
   h.note=document.getElementById('edit-habit-note').value.trim();
   h.section=document.getElementById('edit-habit-section').value;
   h.pts=Math.max(1,Math.min(20,+(document.getElementById('edit-habit-pts').value)||h.pts));
-  save(); buildTodaySections(); applyChecks(); updateProg(); buildSettingsPage(); closeEditModal();
-  showToast('✅ Habit updated!');
-}
-function addNewSection(){
-  const name=document.getElementById('new-section-name').value.trim(); if(!name){showToast('⚠️ Enter a section name');return;}
-  const icon=document.getElementById('new-section-icon').value.trim()||'📌';
-  state.sections.push({id:genId(),icon,name,tag:''});
-  save(); buildTodaySections(); buildSettingsPage();
-  document.getElementById('new-section-name').value=''; document.getElementById('new-section-icon').value='';
-  showToast('✅ Section added!');
-}
-function deleteSection(id){
-  const habits=state.habits.filter(h=>h.section===id);
-  if(habits.length&&!confirm(`Delete section and its ${habits.length} habit(s)?`)) return;
-  state.sections=state.sections.filter(s=>s.id!==id);
-  habits.forEach(h=>{ state.habits=state.habits.filter(x=>x.id!==h.id); delete state.checks[h.id]; });
-  save(); buildTodaySections(); applyChecks(); updateProg(); buildSettingsPage();
-  showToast('🗑 Section deleted');
+  save();buildTodaySections();applyChecks();updateProg();buildSettingsPage();closeEditModal();showToast('✅ Habit updated!');
 }
 
-/* ═══════════════════════════════════════════════════
-   MISC
-═══════════════════════════════════════════════════ */
+function addNewSection(){
+  const name=document.getElementById('new-section-name').value.trim();if(!name){showToast('⚠️ Enter a section name');return;}
+  const icon=document.getElementById('new-section-icon').value.trim()||'📌';
+  state.sections.push({id:genId(),icon,name,tag:''});
+  save();buildTodaySections();buildSettingsPage();
+  document.getElementById('new-section-name').value='';document.getElementById('new-section-icon').value='';showToast('✅ Section added!');
+}
+
+function deleteSection(id){
+  const habits=state.habits.filter(h=>h.section===id);
+  if(habits.length&&!confirm(`Delete section and its ${habits.length} habit(s)?`))return;
+  state.sections=state.sections.filter(s=>s.id!==id);
+  habits.forEach(h=>{state.habits=state.habits.filter(x=>x.id!==h.id);delete state.checks[h.id];});
+  save();buildTodaySections();applyChecks();updateProg();buildSettingsPage();showToast('🗑 Section deleted');
+}
+
+// ═══════════════════════════════════════════
+// MISC
+// ═══════════════════════════════════════════
 function confetti(){
   ['🎉','⭐','✨','🎊','💫'].forEach((e,i)=>{
-    setTimeout(()=>{ const el=document.createElement('div'); el.className='confetti-piece'; el.textContent=e; el.style.cssText=`left:${Math.random()*85}vw;top:${Math.random()*55}vh;`; document.body.appendChild(el); setTimeout(()=>el.remove(),1200); },i*120);
+    setTimeout(()=>{const el=document.createElement('div');el.className='confetti-piece';el.textContent=e;el.style.cssText=`left:${Math.random()*85}vw;top:${Math.random()*55}vh;`;document.body.appendChild(el);setTimeout(()=>el.remove(),1200);},i*120);
   });
 }
+
 function resetToday(){
-  state.checks={}; state.water=0; state.pts=0; state.studyHrs=0;
-  buildTodaySections(); applyChecks(); renderWater(); updateProg(); updateReward(); updateStudyHrsBar();
-  save(); showToast('♻️ Checklist reset');
+  state.checks={};state.water=0;state.pts=0;state.studyHrs=0;
+  buildTodaySections();applyChecks();renderWater();updateProg();updateReward();updateStudyHrsBar();
+  save();showToast('♻️ Checklist reset');
 }
+
 function confirmFactoryReset(){
   if(confirm('⚠️ Delete ALL data including streaks and badges?')){
-    if(swimAnimFrame) cancelAnimationFrame(swimAnimFrame);
-    localStorage.removeItem(DB_KEY); state=defaultState(); init(); showToast('✅ Factory reset done');
+    localStorage.removeItem(DB_KEY);state=defaultState();init();showToast('✅ Factory reset done');
   }
 }
+
 function showPage(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
-  if(id==='settings') buildSettingsPage();
-  if(id==='reminders'){ updateNotifStatusUI(); renderReminderList(); }
-  if(id==='junk') renderJunkTracker();
+  if(id==='settings')buildSettingsPage();
+  if(id==='reminders'){updateNotifStatusUI();renderReminderList();}
+  if(id==='junk')renderJunkTracker();
 }
 
-/* ═══════════════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════════════ */
-function init(){
-  load();
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+async function init(){
+  await load();
   const today=todayKey();
   const isNew=state.lastDate&&state.lastDate!==today;
-  if(state.lastDate!==today){ state.checks={}; state.water=0; state.pts=0; state.studyHrs=0; state.lastDate=today; save(); }
-  if(isNew){ const b=document.getElementById('banner'); b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),4000); }
-  
+  if(state.lastDate!==today){state.checks={};state.water=0;state.pts=0;state.studyHrs=0;state.lastDate=today;await save();}
+  if(isNew){const b=document.getElementById('banner');b.classList.add('show');setTimeout(()=>b.classList.remove('show'),4000);}
   const dateEl=document.getElementById('date-chip-text');
-  if(dateEl) dateEl.textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
-  
+  if(dateEl)dateEl.textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
   updateGreeting();
   setInterval(updateGreeting,60000);
   updateDateChipJunkWarn();
   buildTodaySections();
   applyChecks();
   renderHomeReminders();
-  buildTmrChips(); renderTmr();
-  buildStudyCats(); renderStudyList(); updateStudyHrsBar();
+  buildTmrChips();renderTmr();
+  buildStudyCats();renderStudyList();updateStudyHrsBar();
   updateStreakHero();
-  renderEngHistory(); updateEngStreak();
+  renderEngHistory();updateEngStreak();
   renderJunkTracker();
   renderBiry();
-  updateProg(); updateReward();
+  updateProg();updateReward();
   buildDaysPicker();
   buildPresetChips();
   updateNotifStatusUI();
@@ -2002,6 +1957,7 @@ function init(){
   startReminderEngine();
   checkMissedTasksBanner();
 }
+
 init();
 </script>
 </body>
