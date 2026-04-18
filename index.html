@@ -52,7 +52,11 @@ body{
   min-height:100vh;padding-bottom:80px;font-size:15px;line-height:1.5;
 }
 @media(min-width:1024px){
-  body{padding-bottom:40px;}
+  body{
+    padding-bottom:40px;
+    background:linear-gradient(145deg,var(--bg-from) 0%,var(--bg-mid) 50%,var(--bg-to) 100%);
+    background-attachment:fixed;
+  }
 }
 
 /* ══════════════════════════════════════════════
@@ -62,17 +66,16 @@ body{
   max-width:100%;
   margin:0 auto;
   position:relative;
+  background:transparent;
 }
 @media(min-width:1024px){
   .app-wrapper{
-    max-width:1280px;
+    max-width:100%;
     margin:0 auto;
-    box-shadow:0 0 80px rgba(100,80,200,0.08);
+    box-shadow:none;
   }
 }
-@media(min-width:1440px){
-  .app-wrapper{max-width:1400px;}
-}
+
 
 /* ══════════════════════════════════════════════
    HERO — GREETING ONCE ONLY
@@ -83,8 +86,9 @@ body{
   transition:background 0.8s ease;
 }
 @media(min-width:768px){.theme-hero{padding:28px 40px 22px;}}
-@media(min-width:1024px){.theme-hero{padding:40px 60px 32px;}}
-@media(min-width:1440px){.theme-hero{padding:48px 80px 38px;}}
+@media(min-width:1024px){.theme-hero{padding:32px 40px 26px;}}
+@media(min-width:1440px){.theme-hero{padding:40px 60px 32px;}}
+
 
 .theme-hero-bg{
   position:absolute;inset:0;
@@ -189,8 +193,9 @@ body.theme-night .theme-sync-row{color:#4ade80;}
   padding:10px 20px 12px;transition:background 0.8s;
 }
 @media(min-width:768px){.theme-prog-wrap{padding:12px 40px 14px;}}
-@media(min-width:1024px){.theme-prog-wrap{padding:14px 60px 16px;}}
-@media(min-width:1440px){.theme-prog-wrap{padding:16px 80px 18px;}}
+@media(min-width:1024px){.theme-prog-wrap{padding:12px 40px 14px;}}
+@media(min-width:1440px){.theme-prog-wrap{padding:14px 60px 16px;}}
+
 .theme-prog-label{
   font-size:9px;font-weight:700;letter-spacing:2.5px;
   text-transform:uppercase;margin-bottom:6px;transition:color 0.5s;
@@ -225,8 +230,8 @@ body.theme-night .theme-sync-row{color:#4ade80;}
   padding:5px 20px;display:flex;align-items:center;
   gap:8px;font-size:10px;font-weight:500;color:var(--text-muted);
 }
-@media(min-width:1024px){.firebase-status{padding:5px 60px;}}
-@media(min-width:1440px){.firebase-status{padding:5px 80px;}}
+@media(min-width:1024px){.firebase-status{padding:5px 40px;}}
+@media(min-width:1440px){.firebase-status{padding:5px 60px;}}
 .fb-dot{width:7px;height:7px;border-radius:50%;background:#D1D5DB;flex-shrink:0;}
 .fb-dot.online{background:var(--green-500);box-shadow:0 0 6px var(--green-glow);}
 .fb-dot.offline{background:var(--red-500);}
@@ -273,10 +278,11 @@ nav::-webkit-scrollbar{display:none;}
 .nb:hover:not(.active){color:var(--text-primary);}
 @media(min-width:768px){.nb{padding:12px 20px;font-size:13px;}}
 @media(min-width:1024px){
-  nav{padding:0 60px;}
-  .nb{padding:14px 24px;font-size:14px;}
+  nav{padding:0 40px;}
+  .nb{padding:14px 20px;font-size:13px;}
 }
-@media(min-width:1440px){nav{padding:0 80px;}}
+@media(min-width:1440px){nav{padding:0 60px;}}
+
 
 /* ══════════════════════════════════════════════
    PAGES
@@ -284,8 +290,9 @@ nav::-webkit-scrollbar{display:none;}
 .page{display:none;padding:14px;}
 .page.active{display:block;}
 @media(min-width:768px){.page{padding:20px 32px;}}
-@media(min-width:1024px){.page{padding:28px 60px 48px;}}
-@media(min-width:1440px){.page{padding:32px 80px 56px;}}
+@media(min-width:1024px){.page{padding:28px 40px 48px;}}
+@media(min-width:1440px){.page{padding:32px 60px 56px;}}
+
 
 /* Desktop 2-col for today sections */
 @media(min-width:1024px){
