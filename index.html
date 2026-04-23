@@ -1215,6 +1215,8 @@ nav::-webkit-scrollbar{display:none;}
 <!-- CAREER PAGE                                 -->
 <!-- ████████████████████████████████████████████ -->
 <div class="page" id="page-study">
+
+  <!-- TOP ROW: Study Streak + Motivation -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
     <div class="sc">
       <div class="sh"><span class="si">🔥</span><span class="st">Study Streak</span></div>
@@ -1229,6 +1231,7 @@ nav::-webkit-scrollbar{display:none;}
         </div>
       </div>
     </div>
+
     <div class="sc">
       <div class="sh"><span class="si">💡</span><span class="st">Daily Motivation</span></div>
       <div style="padding:10px 14px;">
@@ -1238,30 +1241,37 @@ nav::-webkit-scrollbar{display:none;}
     </div>
   </div>
 
+  <!-- CAREER METER -->
   <div class="sc">
     <div class="sh"><span class="si">📈</span><span class="st">Career Meter</span><span class="stag" id="ct-day-count">Day 0</span></div>
     <div style="padding:7px 14px 3px;font-size:0.78rem;color:var(--text-muted);">Tracking your journey to <strong style="color:var(--text-primary);">Data Analyst role</strong></div>
     <div style="padding:10px 14px 14px;display:flex;flex-direction:column;gap:10px;">
+
       <div>
         <div style="display:flex;justify-content:space-between;font-size:0.79rem;font-weight:600;margin-bottom:4px;"><span>🗄️ SQL Skills</span><span style="color:#7c3aed;font-weight:700;" id="ct-pct-sql">0%</span></div>
         <div style="width:100%;height:10px;background:#ede9fe;border-radius:99px;overflow:hidden;"><div id="ct-bar-sql" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#7c3aed,#a78bfa);width:0%;transition:width 0.6s;"></div></div>
       </div>
+
       <div>
         <div style="display:flex;justify-content:space-between;font-size:0.79rem;font-weight:600;margin-bottom:4px;"><span>🛠️ Tools (Excel/PBI/Python)</span><span style="color:#2563eb;font-weight:700;" id="ct-pct-tools">0%</span></div>
         <div style="width:100%;height:10px;background:#dbeafe;border-radius:99px;overflow:hidden;"><div id="ct-bar-tools" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#2563eb,#60a5fa);width:0%;transition:width 0.6s;"></div></div>
       </div>
+
       <div>
         <div style="display:flex;justify-content:space-between;font-size:0.79rem;font-weight:600;margin-bottom:4px;"><span>🗂️ Projects</span><span style="color:#059669;font-weight:700;" id="ct-pct-proj">0%</span></div>
         <div style="width:100%;height:10px;background:#d1fae5;border-radius:99px;overflow:hidden;"><div id="ct-bar-proj" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#059669,#34d399);width:0%;transition:width 0.6s;"></div></div>
       </div>
+
       <div>
         <div style="display:flex;justify-content:space-between;font-size:0.79rem;font-weight:600;margin-bottom:4px;"><span>🎤 Interview Skills</span><span style="color:#d97706;font-weight:700;" id="ct-pct-intv">0%</span></div>
         <div style="width:100%;height:10px;background:#fef3c7;border-radius:99px;overflow:hidden;"><div id="ct-bar-intv" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#d97706,#fbbf24);width:0%;transition:width 0.6s;"></div></div>
       </div>
+
       <div style="padding-top:10px;border-top:1px dashed #e0d9ff;">
         <div style="display:flex;justify-content:space-between;font-size:0.82rem;font-weight:700;color:#3b28cc;margin-bottom:5px;"><span>⚡ Overall Career Readiness</span><span id="ct-pct-overall">0%</span></div>
         <div style="width:100%;height:14px;background:#ede9fe;border-radius:99px;overflow:hidden;"><div id="ct-bar-overall" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#3b28cc,#7c3aed,#a78bfa);width:0%;transition:width 0.6s;"></div></div>
       </div>
+
       <div>
         <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);margin-bottom:7px;">🏆 Milestones</div>
         <div style="display:flex;gap:7px;flex-wrap:wrap;">
@@ -1272,20 +1282,28 @@ nav::-webkit-scrollbar{display:none;}
           <div class="ct-ms" data-m="100" style="flex:1;min-width:52px;background:#f3f0ff;border-radius:9px;padding:7px 5px;text-align:center;font-size:0.68rem;color:#7c3aed;font-weight:700;border:2px solid transparent;transition:all 0.3s;"><span style="font-size:1rem;display:block;margin-bottom:2px;">🏆</span>100%<br/>Job Ready!</div>
         </div>
       </div>
+
       <div>
         <div style="font-size:0.77rem;font-weight:700;color:var(--text-muted);margin-bottom:7px;">✅ Mark today's completed task (+1% + auto +1hr study):</div>
         <div style="display:flex;flex-wrap:wrap;gap:7px;">
           <button onclick="ctHandleProgress('sql','SQL Practice')" style="padding:6px 12px;border:none;border-radius:99px;font-size:0.75rem;font-weight:700;cursor:pointer;color:white;background:linear-gradient(90deg,#7c3aed,#a78bfa);font-family:var(--font);">+1% SQL</button>
+          <button onclick="ctRemoveProgress('sql','SQL Practice')" style="padding:6px 12px;border:none;border-radius:99px;font-size:0.75rem;font-weight:700;cursor:pointer;color:white;background:linear-gradient(90deg,#dc2626,#f87171);font-family:var(--font);">-1% SQL</button>
           <button onclick="ctHandleProgress('tools','Tools')" style="padding:6px 12px;border:none;border-radius:99px;font-size:0.75rem;font-weight:700;cursor:pointer;color:white;background:linear-gradient(90deg,#2563eb,#60a5fa);font-family:var(--font);">+1% Tools</button>
+          <button onclick="ctRemoveProgress('tools','Tools')" style="padding:6px 12px;border:none;border-radius:99px;font-size:0.75rem;font-weight:700;cursor:pointer;color:white;background:linear-gradient(90deg,#dc2626,#f87171);font-family:var(--font);">-1% Tools</button>
           <button onclick="ctHandleProgress('proj','Project')" style="padding:6px 12px;border:none;border-radius:99px;font-size:0.75rem;font-weight:700;cursor:pointer;color:white;background:linear-gradient(90deg,#059669,#34d399);font-family:var(--font);">+1% Project</button>
+          <button onclick="ctRemoveProgress('proj','Project')" style="padding:6px 12px;border:none;border-radius:99px;font-size:0.75rem;font-weight:700;cursor:pointer;color:white;background:linear-gradient(90deg,#dc2626,#f87171);font-family:var(--font);">-1% Project</button>
           <button onclick="ctHandleProgress('intv','Interview')" style="padding:6px 12px;border:none;border-radius:99px;font-size:0.75rem;font-weight:700;cursor:pointer;color:white;background:linear-gradient(90deg,#d97706,#fbbf24);font-family:var(--font);">+1% Interview</button>
+          <button onclick="ctRemoveProgress('intv','Interview')" style="padding:6px 12px;border:none;border-radius:99px;font-size:0.75rem;font-weight:700;cursor:pointer;color:white;background:linear-gradient(90deg,#dc2626,#f87171);font-family:var(--font);">-1% Interview</button>
           <button onclick="ctResetAll()" style="padding:6px 12px;border:none;border-radius:99px;font-size:0.75rem;font-weight:700;cursor:pointer;background:#e5e7eb;color:#555;font-family:var(--font);">🔄 Reset</button>
         </div>
-        <div id="ct-today-banner" style="display:none;margin-top:10px;background:linear-gradient(90deg,#d1fae5,#a7f3d0);border-radius:9px;padding:7px 12px;font-size:0.77rem;font-weight:700;color:#065f46;text-align:center;">✅ Today counted! Come back tomorrow to keep your streak alive 🔥</div>
       </div>
+
+      <div id="ct-today-banner" style="display:none;margin-top:10px;background:linear-gradient(90deg,#d1fae5,#a7f3d0);border-radius:9px;padding:7px 12px;font-size:0.77rem;font-weight:700;color:#065f46;text-align:center;">✅ Today counted! Come back tomorrow to keep your streak alive 🔥</div>
+
     </div>
   </div>
 
+  <!-- DAILY STUDY GOAL -->
   <div class="sc">
     <div class="sh"><span class="si">📖</span><span class="st">Daily Study Goal</span><span class="stag" style="background:#fef2f2;color:#dc2626;border-color:#fecaca;">NON-NEGOTIABLE</span></div>
     <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;padding:14px 16px;">
@@ -1311,6 +1329,7 @@ nav::-webkit-scrollbar{display:none;}
     </div>
   </div>
 
+  <!-- CAREER TASKS -->
   <div class="sc">
     <div class="sh"><span class="si">🎯</span><span class="st">Career Tasks</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:5px;padding:9px 14px 7px;" id="ct-tag-row">
@@ -1330,6 +1349,7 @@ nav::-webkit-scrollbar{display:none;}
     <ul id="ct-task-list" style="list-style:none;padding:0 14px 10px;"></ul>
   </div>
 
+  <!-- ACTIVITY LOG -->
   <div class="sc">
     <div class="sh"><span class="si">📝</span><span class="st">Activity Log</span></div>
     <ul id="ct-log-list" style="list-style:none;padding:4px 14px 7px;max-height:180px;overflow-y:auto;"></ul>
@@ -1337,7 +1357,10 @@ nav::-webkit-scrollbar{display:none;}
       <button onclick="ctClearLog()" style="width:100%;padding:9px;border-radius:9px;border:1px solid #e5e7eb;background:rgba(255,255,255,.7);color:var(--text-muted);font-weight:600;cursor:pointer;font-size:0.76rem;font-family:var(--font);">Clear Log</button>
     </div>
   </div>
+
 </div>
+<!-- END CAREER PAGE -->
+
 <!-- END CAREER PAGE -->
 
 <!-- ████████████████████████████████████████████ -->
@@ -3234,6 +3257,35 @@ function ctHandleProgress(skill,label){
   state.ctSkills[skill]=Math.min(100,(state.ctSkills[skill]||0)+1);
   ctUpdateMeter();ctAddLog('📈 '+label+' +1%');ctAddHour(true);ctHandleStreak();save();
 }
+function ctRemoveProgress(skill, label) {
+  if ((state.ctSkills[skill] || 0) <= 0) {
+    showToast('⚠️ Already at 0%', 'yt');
+    return;
+  }
+
+  // Undo the skill %
+  state.ctSkills[skill] = Math.max(0, (state.ctSkills[skill] || 0) - 1);
+
+  // ✅ Also undo the study hour that was auto-added with +1%
+  if ((state.ctStudyHrs || 0) > 0) {
+    state.ctStudyHrs = Math.max(0, (state.ctStudyHrs || 0) - 1);
+
+    // If day was marked complete, un-complete it
+    if (state.ctDayDone && state.ctStudyHrs < 4) {
+      state.ctDayDone = false;
+      var cb = document.getElementById('ct-complete-banner');
+      if (cb) cb.style.display = 'none';
+      var btn = document.getElementById('ct-complete-btn');
+      if (btn) btn.textContent = '✅ Complete Day';
+    }
+  }
+
+  ctUpdateMeter();
+  ctUpdateDailyUI();  // ✅ This refreshes the pie chart and hour count
+  ctAddLog('↩️ ' + label + ' -1% (undone)');
+  save();
+}
+
 function ctUpdateMeter(){
   ['sql','tools','proj','intv'].forEach(function(k){
     var bar=document.getElementById('ct-bar-'+k);
@@ -4072,14 +4124,21 @@ async function init(){
   var today=todayKey();
   var isNew=state.lastDate&&state.lastDate!==today;
 
-  if(state.lastDate!==today){
-    state.checks={};
-    state.water=0;
-    state.pts=0;
-    resetDailyLangFlags();
-    state.lastDate=today;
-    await save();
-  }
+if(state.lastDate!==today){
+  state.checks={};
+  state.water=0;
+  state.pts=0;
+  resetDailyLangFlags();
+
+  // ✅ FIX: Reset study hours every new day
+  state.ctStudyHrs = 0;
+  state.ctDayDone = false;
+  state.ctTodayLogged = false;
+
+  state.lastDate=today;
+  await save();
+}
+
 
   if(isNew){
     var b=document.getElementById('banner');
