@@ -1277,8 +1277,6 @@ let masterTickCount = 0;
 let _configSyncTimer = null;
 let _settingsNeedRebuild = false; /* BUG 51 FIX: dirty flag */
 let _lastThemeKey = ''; /* BUG 33 FIX: cache for theme change detection */
-/* BUG sync: echo loop prevention flag */
-let _isRemoteUpdate = false;
 /* BUG 8 FIX: first-run flag for checkReminders startup */
 let _reminderFirstCheck = true;
 
@@ -1735,6 +1733,7 @@ function showSync(type, msg) {
 function buildDailyPayload() {
   const payload = {
     date: todayKey(), savedAt: new Date().toISOString(),
+    savedBy: _getDeviceId(), 
     lastResetTimestamp: state.lastResetTimestamp || 0,
     checks: state.checks || {}, water: state.water || 0,
     pts: state.pts || 0, totalPts: state.totalPts || 0,
@@ -1805,226 +1804,295 @@ function buildConfigPayload() {
 /* ═══════════════════════════════════════════════════════════════
    APPLY REMOTE DOCUMENTS
 ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   APPLY REMOTE DOCUMENTS — PRODUCTION FIX
+   True bidirectional merge: always take the higher value
+   ═══════════════════════════════════════════════════════════════ */
 function applyDailyDoc(d) {
-  if (!d || typeof d !== 'object') return;
+    if (!d || typeof d !== 'object') return;
 
-  /* BUG 13 FIX: skip merging checks/water/pts if remote is pre-reset */
-  const remoteSavedAt = d.savedAt ? new Date(d.savedAt).getTime() : 0;
-  const localResetAt = state.lastResetTimestamp || 0;
-  const mergeChecks = !(remoteSavedAt > 0 && remoteSavedAt < localResetAt);
+    const remoteSavedAt = d.savedAt ? new Date(d.savedAt).getTime() : 0;
+    const localResetAt = state.lastResetTimestamp || 0;
+    
+    /* Skip merging daily fields if:
+       1. Remote is from before our reset, OR
+       2. Remote date field does not match today (stale data from yesterday) */
+    const remoteIsStale = d.date && d.date !== todayKey();
+    const mergeChecks = !remoteIsStale && !(remoteSavedAt > 0 && remoteSavedAt < localResetAt);
 
-  if ((d.totalPts||0) > (state.totalPts||0)) state.totalPts = d.totalPts;
-  if (mergeChecks && (d.pts||0) > (state.pts||0)) state.pts = d.pts;
 
-  if (mergeChecks && (d.water||0) > (state.water||0)) {
-    state.water = d.water;
-    if (!state.waterLog) state.waterLog = {};
-    state.waterLog[todayKey()] = Math.max(state.waterLog[todayKey()]||0, d.water);
-  }
+    /* Always take the higher totalPts */
+    state.totalPts = Math.max(state.totalPts || 0, d.totalPts || 0);
 
-  if (mergeChecks && d.checks && typeof d.checks === 'object') {
-    state.checks = state.checks || {};
-    Object.keys(d.checks).forEach(k => { if (d.checks[k]) state.checks[k] = true; });
-  }
+    if (mergeChecks) {
+        /* Water: always take the higher value */
+        state.water = Math.max(state.water || 0, d.water || 0);
+        if (!state.waterLog) state.waterLog = {};
+        state.waterLog[todayKey()] = Math.max(state.waterLog[todayKey()] || 0, state.water);
 
-  if (Array.isArray(d.earnedBadges)) {
-    state.earnedBadges = state.earnedBadges || [];
-    d.earnedBadges.forEach(b => { if (!state.earnedBadges.includes(b)) state.earnedBadges.push(b); });
-  }
+        /* Points: always take the higher value */
+        state.pts = Math.max(state.pts || 0, d.pts || 0);
 
-  const simpleFields = [
-    'lastDate','missedTasksAlertTime','missedBannerDismissedDate',
-    'lastEngDate','engSpeakLastDate','engLearnLastDate',
-    'hiReadLastDate','hiSpeakLastDate','hiLearnLastDate',
-    'ctLastDate','ctStreakLastDate','sugarWeekStart',
-    'weeklyTasksResetDate','wtReminderTime','wtReminderInterval'
-  ];
-  simpleFields.forEach(f => { if (d[f] !== undefined && !state[f]) state[f] = d[f]; });
-
-  ['ctTodayLogged','ctDayDone','wtReminderEnabled'].forEach(f => { if (d[f]) state[f] = true; });
-
-  const maxFields = [
-    'engStreak','engSpeakStreak','engLearnStreak',
-    'hiReadStreak','hiSpeakStreak','hiLearnStreak',
-    'ctStreakDays','ctTotalDays'
-  ];
-  maxFields.forEach(f => { if ((d[f]||0) > (state[f]||0)) state[f] = d[f]; });
-
-  ['engReadDone','engSpeakDone','engLearnDone','hiReadDone','hiSpeakDone','hiLearnDone']
-    .forEach(f => { if (d[f]) state[f] = true; });
-
-  if (d.ctSkills && typeof d.ctSkills === 'object') {
-    state.ctSkills = state.ctSkills || {sql:0,tools:0,proj:0,intv:0};
-    CT_SKILL_KEYS.forEach(k => {
-      state.ctSkills[k] = Math.max(state.ctSkills[k]||0, d.ctSkills[k]||0);
-    });
-  }
-
-  if (d.date === todayKey() && mergeChecks) {
-    if ((d.ctStudyHrs||0) > (state.ctStudyHrs||0))
-      state.ctStudyHrs = d.ctStudyHrs;
-  }
-
-  if (d.ctLastStudyDate && !state.ctLastStudyDate)
-    state.ctLastStudyDate = d.ctLastStudyDate;
-
-  if (Array.isArray(d.ctTasks)) {
-    if ((d.ctTasksUpdatedAt||0) > (state.ctTasksUpdatedAt||0)) {
-      state.ctTasks = d.ctTasks;
-      state.ctTasksUpdatedAt = d.ctTasksUpdatedAt;
+        /* Checks: UNION merge — if either device checked it, it's checked */
+        if (d.checks && typeof d.checks === 'object') {
+            state.checks = state.checks || {};
+            Object.keys(d.checks).forEach(k => {
+                if (d.checks[k]) state.checks[k] = true;
+            });
+        }
     }
-  }
 
-  if (Array.isArray(d.ctLog)) {
-    if ((d.ctLogUpdatedAt||0) > (state.ctLogUpdatedAt||0)) {
-      state.ctLog = d.ctLog;
-      state.ctLogUpdatedAt = d.ctLogUpdatedAt;
+    /* Earned badges: UNION merge */
+    if (Array.isArray(d.earnedBadges)) {
+        state.earnedBadges = state.earnedBadges || [];
+        d.earnedBadges.forEach(b => {
+            if (!state.earnedBadges.includes(b)) state.earnedBadges.push(b);
+        });
     }
-  }
 
-  if (d.ctWeeklyHours && typeof d.ctWeeklyHours === 'object') {
-    state.ctWeeklyHours = state.ctWeeklyHours || {};
-    Object.keys(d.ctWeeklyHours).forEach(k => {
-      state.ctWeeklyHours[k] = Math.max(state.ctWeeklyHours[k]||0, d.ctWeeklyHours[k]||0);
+    /* String fields: take non-empty / latest */
+    const stringFieldsLatest = [
+        'lastDate', 'missedTasksAlertTime', 'missedBannerDismissedDate',
+        'lastEngDate', 'engSpeakLastDate', 'engLearnLastDate',
+        'hiReadLastDate', 'hiSpeakLastDate', 'hiLearnLastDate',
+        'ctLastDate', 'ctStreakLastDate', 'sugarWeekStart',
+        'weeklyTasksResetDate', 'wtReminderTime'
+    ];
+    stringFieldsLatest.forEach(f => {
+        /* Take the LATER date or the non-empty one */
+        if (d[f] !== undefined) {
+            if (!state[f]) state[f] = d[f];
+            else if (typeof d[f] === 'string' && typeof state[f] === 'string') {
+                if (d[f] > state[f]) state[f] = d[f];
+            }
+        }
     });
-  }
 
-  if (d.ctDayHistory && typeof d.ctDayHistory === 'object') {
-    state.ctDayHistory = state.ctDayHistory || {};
-    const priority = {complete:3,partial:2,rest:1};
-    const validDateRe = /^\d{4}-\d{2}-\d{2}$/;
-    const validValues = new Set(['complete','partial','rest']);
-    Object.keys(d.ctDayHistory).forEach(k => {
-      /* BUG 20 FIX: validate incoming data */
-      if (!validDateRe.test(k) || !validValues.has(d.ctDayHistory[k])) return;
-      const existing = priority[state.ctDayHistory[k]] || 0;
-      const incoming = priority[d.ctDayHistory[k]] || 0;
-      if (incoming > existing) state.ctDayHistory[k] = d.ctDayHistory[k];
+    /* Numeric fields: take max */
+    if (d.wtReminderInterval !== undefined)
+        state.wtReminderInterval = Math.max(state.wtReminderInterval || 0, d.wtReminderInterval || 0);
+
+    /* Boolean fields: OR merge (true wins) */
+    ['ctTodayLogged', 'ctDayDone', 'wtReminderEnabled',
+     'engReadDone', 'engSpeakDone', 'engLearnDone',
+     'hiReadDone', 'hiSpeakDone', 'hiLearnDone'].forEach(f => {
+        if (d[f]) state[f] = true;
     });
-  }
 
-  if ((d.ctConsecutiveRestDays||0) > (state.ctConsecutiveRestDays||0))
-    state.ctConsecutiveRestDays = d.ctConsecutiveRestDays;
-
-  if (Array.isArray(d.junkLog) && (!state.junkLog || !state.junkLog.length)) state.junkLog = d.junkLog;
-  if (Array.isArray(d.sugarLog) && (!state.sugarLog || !state.sugarLog.length)) state.sugarLog = d.sugarLog;
-  if (Array.isArray(d.biryLog) && (!state.biryLog || !state.biryLog.length)) state.biryLog = d.biryLog;
-  if (d.weeklyGrams !== undefined && !state.weeklyGrams) state.weeklyGrams = d.weeklyGrams;
-  if (Array.isArray(d.weeklyTasks) && (!state.weeklyTasks || !state.weeklyTasks.length))
-    state.weeklyTasks = d.weeklyTasks;
-
-  if (d.waterLog && typeof d.waterLog === 'object') {
-    state.waterLog = state.waterLog || {};
-    Object.keys(d.waterLog).forEach(k => {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
-      const val = d.waterLog[k];
-      if (typeof val !== 'number' || val < 0 || val > 50) return;
-      state.waterLog[k] = Math.max(state.waterLog[k]||0, val);
+    /* Streak/count fields: always take max */
+    ['engStreak', 'engSpeakStreak', 'engLearnStreak',
+     'hiReadStreak', 'hiSpeakStreak', 'hiLearnStreak',
+     'ctStreakDays', 'ctTotalDays', 'ctConsecutiveRestDays'].forEach(f => {
+        state[f] = Math.max(state[f] || 0, d[f] || 0);
     });
-  }
+
+    /* Career skills: take max per skill */
+    if (d.ctSkills && typeof d.ctSkills === 'object') {
+        state.ctSkills = state.ctSkills || { sql: 0, tools: 0, proj: 0, intv: 0 };
+        CT_SKILL_KEYS.forEach(k => {
+            state.ctSkills[k] = Math.max(state.ctSkills[k] || 0, d.ctSkills[k] || 0);
+        });
+    }
+
+    /* Study hours for today: take max */
+    if (d.date === todayKey() && mergeChecks) {
+        state.ctStudyHrs = Math.max(state.ctStudyHrs || 0, d.ctStudyHrs || 0);
+    }
+
+    if (d.ctLastStudyDate && (!state.ctLastStudyDate || d.ctLastStudyDate > state.ctLastStudyDate))
+        state.ctLastStudyDate = d.ctLastStudyDate;
+
+    /* Tasks & log: timestamp-based winner */
+    if (Array.isArray(d.ctTasks) && (d.ctTasksUpdatedAt || 0) > (state.ctTasksUpdatedAt || 0)) {
+        state.ctTasks = d.ctTasks;
+        state.ctTasksUpdatedAt = d.ctTasksUpdatedAt;
+    }
+
+    if (Array.isArray(d.ctLog) && (d.ctLogUpdatedAt || 0) > (state.ctLogUpdatedAt || 0)) {
+        state.ctLog = d.ctLog;
+        state.ctLogUpdatedAt = d.ctLogUpdatedAt;
+    }
+
+    /* Weekly hours: max per day */
+    if (d.ctWeeklyHours && typeof d.ctWeeklyHours === 'object') {
+        state.ctWeeklyHours = state.ctWeeklyHours || {};
+        Object.keys(d.ctWeeklyHours).forEach(k => {
+            state.ctWeeklyHours[k] = Math.max(state.ctWeeklyHours[k] || 0, d.ctWeeklyHours[k] || 0);
+        });
+    }
+
+    /* Day history: priority merge */
+    if (d.ctDayHistory && typeof d.ctDayHistory === 'object') {
+        state.ctDayHistory = state.ctDayHistory || {};
+        const priority = { complete: 3, partial: 2, rest: 1 };
+        const validDateRe = /^\d{4}-\d{2}-\d{2}$/;
+        const validValues = new Set(['complete', 'partial', 'rest']);
+        Object.keys(d.ctDayHistory).forEach(k => {
+            if (!validDateRe.test(k) || !validValues.has(d.ctDayHistory[k])) return;
+            const existing = priority[state.ctDayHistory[k]] || 0;
+            const incoming = priority[d.ctDayHistory[k]] || 0;
+            if (incoming > existing) state.ctDayHistory[k] = d.ctDayHistory[k];
+        });
+    }
+
+    /* Junk/sugar/biryani logs: UNION merge by entry ID */
+    _mergeLogArray('junkLog', d);
+    _mergeLogArray('sugarLog', d);
+
+    /* Biryani: merge by monthKey and entry ID */
+    if (Array.isArray(d.biryLog)) {
+        state.biryLog = state.biryLog || [];
+        d.biryLog.forEach(remoteMonth => {
+            if (!remoteMonth.monthKey) return;
+            let localMonth = state.biryLog.find(x => x.monthKey === remoteMonth.monthKey);
+            if (!localMonth) {
+                state.biryLog.push(JSON.parse(JSON.stringify(remoteMonth)));
+                return;
+            }
+            const localIds = new Set((localMonth.entries || []).map(e => e.id));
+            (remoteMonth.entries || []).forEach(re => {
+                if (re.id && !localIds.has(re.id)) {
+                    localMonth.entries.push(re);
+                }
+            });
+            localMonth.count = localMonth.entries.length;
+        });
+    }
+
+    /* Weekly grams: take max */
+    if ((d.weeklyGrams || 0) > (state.weeklyGrams || 0))
+        state.weeklyGrams = d.weeklyGrams;
+
+    /* Weekly tasks: merge by ID, take latest state per task */
+    if (Array.isArray(d.weeklyTasks) && d.weeklyTasks.length > 0) {
+        state.weeklyTasks = state.weeklyTasks || [];
+        const localMap = new Map(state.weeklyTasks.map(t => [t.id, t]));
+        d.weeklyTasks.forEach(rt => {
+            if (!rt.id) return;
+            const existing = localMap.get(rt.id);
+            if (!existing) {
+                state.weeklyTasks.push(rt);
+                localMap.set(rt.id, rt);
+            } else {
+                /* Take the done=true state (OR merge) */
+                if (rt.done && !existing.done) existing.done = true;
+            }
+        });
+    }
+
+    /* Water log: max per day */
+    if (d.waterLog && typeof d.waterLog === 'object') {
+        state.waterLog = state.waterLog || {};
+        Object.keys(d.waterLog).forEach(k => {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
+            const val = d.waterLog[k];
+            if (typeof val !== 'number' || val < 0 || val > 50) return;
+            state.waterLog[k] = Math.max(state.waterLog[k] || 0, val);
+        });
+    }
 }
 
-function applyConfigDoc(c) {
-  if (!c || typeof c !== 'object') return;
-  const remoteHabitsTs = c.habitsUpdatedAt || 0;
-  const remoteSectionsTs = c.sectionsUpdatedAt || 0;
-  const remoteRemsTs = c.remindersUpdatedAt || 0;
-
-  if (Array.isArray(c.habits) && c.habits.length &&
-    remoteHabitsTs > (state.habitsUpdatedAt||0)) {
-    const localHabits = state.habits || [];
-    state.habits = c.habits.map(h => {
-      /* BUG 25 FIX: validate remote string fields */
-      if (h.name) h.name = sanitizeRemoteString(h.name, 80);
-      if (h.note) h.note = sanitizeRemoteString(h.note, 100);
-      if (h.customIconType === 'image_local' || h.customIcon === '__local_image__') {
-        const lh = localHabits.find(x => x.id === h.id);
-        if (lh && lh.customIconType === 'image' && lh.customIcon && lh.customIcon.startsWith('data:'))
-          return Object.assign({}, h, {customIcon:lh.customIcon, customIconType:'image'});
-        const cleaned = Object.assign({}, h);
-        delete cleaned.customIcon; delete cleaned.customIconType;
-        return cleaned;
-      }
-      return h;
+/* ── Helper: Union-merge log arrays by entry ID ── */
+function _mergeLogArray(field, remoteDoc) {
+    if (!Array.isArray(remoteDoc[field]) || !remoteDoc[field].length) return;
+    state[field] = state[field] || [];
+    const localIds = new Set(state[field].map(e => e.id).filter(Boolean));
+    remoteDoc[field].forEach(re => {
+        if (re.id && !localIds.has(re.id)) {
+            state[field].push(re);
+            localIds.add(re.id);
+        }
     });
-    state.habitsUpdatedAt = remoteHabitsTs;
-    _settingsNeedRebuild = true;
-  } else if (!state.habits || !state.habits.length) {
-    if (Array.isArray(c.habits) && c.habits.length) {
-      state.habits = c.habits;
-      state.habitsUpdatedAt = remoteHabitsTs;
-      _settingsNeedRebuild = true;
-    }
-  }
-
-  if (Array.isArray(c.sections) && c.sections.length) {
-    if (remoteSectionsTs > (state.sectionsUpdatedAt||0) || !state.sections || !state.sections.length) {
-      state.sections = c.sections;
-      state.sectionsUpdatedAt = remoteSectionsTs;
-      _settingsNeedRebuild = true;
-    }
-  }
-
-  if (Array.isArray(c.reminders)) {
-    const localTs = state.remindersUpdatedAt || 0;
-    if (remoteRemsTs > localTs || !state.reminders || !state.reminders.length) {
-      const deletedSet = new Set(state.deletedReminderIds || []);
-      if (Array.isArray(c.deletedReminderIds)) c.deletedReminderIds.forEach(id => deletedSet.add(id));
-      state.deletedReminderIds = Array.from(deletedSet).slice(-100);
-      state.reminders = c.reminders.filter(r => !deletedSet.has(r.id));
-      state.remindersUpdatedAt = remoteRemsTs;
-      _settingsNeedRebuild = true;
-    }
-  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
    SAVE ENGINE — BUG 3 FIX: guard in finally block
 ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   SAVE ENGINE — PRODUCTION FIX: Field-level merge sync
+   Replaces full document overwrite with granular updates
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Remove the global _isRemoteUpdate flag entirely — it causes sync deadlocks */
+// let _isRemoteUpdate = false;  // DELETE THIS LINE from globals
+
+/* NEW: Track last save timestamp to prevent echo loops */
+let _lastSaveTimestamp = 0;
+let _lastRemoteSavedAt = '';
+
 async function save() {
-  try { safeLocalStorageSave(DB_KEY, JSON.stringify(state)); } catch(e) {}
-  if (isSaving) return;
-  isSaving = true;
-  const thisVersion = saveVersion;
-  try {
-    updateFbStatus('syncing');
-    const today = todayKey();
-    const dailyPayload = buildDailyPayload();
-    const configPayload = buildConfigPayload();
-    const updates = {};
-    updates['sandy_shared/daily_' + today] = dailyPayload;
-    updates['sandy_shared/config'] = configPayload;
+    try { safeLocalStorageSave(DB_KEY, JSON.stringify(state)); } catch(e) {}
 
-    /* BUG SYNC: set echo prevention flag */
-    _isRemoteUpdate = true;
-    await rtdb.ref().update(updates);
-    setTimeout(() => { _isRemoteUpdate = false; }, 1000);
+    if (isSaving) return;
+    isSaving = true;
+    const thisVersion = saveVersion;
 
-    updateFbStatus('online');
-    showSync('success', 'Synced');
-    saveFailCount = 0;
-    lastSavedVersion = thisVersion;
-  } catch(err) {
-    console.warn('Firebase RTDB save error:', err);
-    _isRemoteUpdate = false;
-    updateFbStatus('offline');
-    showSync('error', 'Saved locally');
-    saveFailCount++;
-    /* BUG 3 FIX: guard prevents infinite retry */
-    if (saveFailCount < SAVE_MAX_FAILS) {
-      const delay = Math.min(SAVE_RETRY_BASE * Math.pow(2, saveFailCount), 15000);
-      setTimeout(() => { if (!isSaving) save(); }, delay);
-    } else {
-      saveFailCount = 0; /* reset after exhausting retries */
+    try {
+        updateFbStatus('syncing');
+        const today = todayKey();
+        const now = new Date().toISOString();
+        _lastSaveTimestamp = Date.now();
+        _lastRemoteSavedAt = now;
+
+        /* ── Build FLAT update map for atomic field-level merge ── */
+        const dailyPath = 'sandy_shared/daily_' + today;
+        const configPath = 'sandy_shared/config';
+
+        const dailyPayload = buildDailyPayload();
+        dailyPayload.savedAt = now;
+        dailyPayload.savedBy = _getDeviceId();
+
+        const configPayload = buildConfigPayload();
+        configPayload.updatedAt = now;
+
+        /* Use set with merge semantics via multi-path update */
+        const updates = {};
+
+        /* Flatten daily payload into individual field paths */
+        Object.keys(dailyPayload).forEach(key => {
+            updates[dailyPath + '/' + key] = dailyPayload[key];
+        });
+
+        /* Config as a single document (less frequent changes) */
+        updates[configPath] = configPayload;
+
+        await rtdb.ref().update(updates);
+
+        updateFbStatus('online');
+        showSync('success', 'Synced');
+        saveFailCount = 0;
+        lastSavedVersion = thisVersion;
+    } catch(err) {
+        console.warn('Firebase RTDB save error:', err);
+        updateFbStatus('offline');
+        showSync('error', 'Saved locally');
+        saveFailCount++;
+
+        if (saveFailCount < SAVE_MAX_FAILS) {
+            const delay = Math.min(SAVE_RETRY_BASE * Math.pow(2, saveFailCount), 15000);
+            setTimeout(() => { if (!isSaving) save(); }, delay);
+        } else {
+            saveFailCount = 0;
+        }
+    } finally {
+        isSaving = false;
+        if (saveVersion !== lastSavedVersion && saveFailCount < SAVE_MAX_FAILS) {
+            setTimeout(() => save(), 150);
+        }
     }
-  } finally {
-    isSaving = false;
-    /* BUG 3 FIX: only retry if genuinely newer version AND within fail limit */
-    if (saveVersion !== lastSavedVersion && saveFailCount < SAVE_MAX_FAILS) {
-      setTimeout(() => save(), 150);
-    }
-  }
 }
+
+/* ── Device ID for echo detection ── */
+function _getDeviceId() {
+    let id = null;
+    try { id = localStorage.getItem('sandy_device_id'); } catch(e) {}
+    if (!id) {
+        id = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+        try { safeLocalStorageSave('sandy_device_id', id); } catch(e) {}
+    }
+    return id;
+}
+
 
 /* ═══════════════════════════════════════════════════════════════
    LOAD
@@ -2063,81 +2131,134 @@ function userRef(path) {
    REALTIME SYNC — BUG 14 FIX: detach .info/connected listener
    BUG SYNC: echo loop prevention
 ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   REALTIME SYNC — PRODUCTION FIX
+   Uses savedBy device ID for echo detection instead of timing flag.
+   Triggers re-save when local merge produces higher values.
+   ═══════════════════════════════════════════════════════════════ */
 function startRealtimeSync() {
-  if (realtimeUnsub) { try { realtimeUnsub(); } catch(e) {} realtimeUnsub = null; }
-  if (realtimeConfigUnsub) { try { realtimeConfigUnsub(); } catch(e) {} realtimeConfigUnsub = null; }
-
-  /* BUG 14 FIX: detach old .info/connected listener before adding new one */
-  if (realtimeConnectedUnsub) {
-    try { rtdb.ref('.info/connected').off('value', realtimeConnectedUnsub); } catch(e) {}
-    realtimeConnectedUnsub = null;
-  }
-
-  const dailyRef = userRef('daily_' + todayKey());
-  const configRef = userRef('config');
-
-  /* Real-time listener for daily data */
-  const dailyCallback = dailyRef.on('value', snap => {
-    realtimeRetryCount = 0;
-    if (!snap.exists()) return;
-    const remote = snap.val();
-    if (!remote) return;
-    /* BUG SYNC: skip echo from our own save */
-    if (_isRemoteUpdate) return;
-    applyDailyDoc(remote);
-    try { safeLocalStorageSave(DB_KEY, JSON.stringify(state)); } catch(e) {}
-    refreshUILightweight();
-    showSync('success', 'Updated');
-  }, err => {
-    console.warn('Daily listener error:', err);
-    updateFbStatus('offline');
-    realtimeRetryCount++;
-    if (realtimeRetryCount <= REALTIME_MAX_RETRIES) {
-      const delay = Math.min(REALTIME_BASE_DELAY * Math.pow(1.5, realtimeRetryCount), 60000);
-      setTimeout(startRealtimeSync, delay);
+    if (realtimeUnsub) { try { realtimeUnsub(); } catch(e) {} realtimeUnsub = null; }
+    if (realtimeConfigUnsub) { try { realtimeConfigUnsub(); } catch(e) {} realtimeConfigUnsub = null; }
+    if (realtimeConnectedUnsub) {
+        try { rtdb.ref('.info/connected').off('value', realtimeConnectedUnsub); } catch(e) {}
+        realtimeConnectedUnsub = null;
     }
-  });
-  realtimeUnsub = () => dailyRef.off('value', dailyCallback);
 
-  /* Real-time listener for config data */
-  const configCallback = configRef.on('value', snap => {
-    if (!snap.exists()) return;
-    const remote = snap.val();
-    if (!remote) return;
-    if (_isRemoteUpdate) return;
-    applyConfigDoc(remote);
-    try { safeLocalStorageSave(DB_KEY, JSON.stringify(state)); } catch(e) {}
-    if (_configSyncTimer) clearTimeout(_configSyncTimer);
-    _configSyncTimer = setTimeout(() => {
-      _configSyncTimer = null;
-      if (typeof handleConfigSyncRebuild === 'function') handleConfigSyncRebuild();
-      if (typeof renderReminderList === 'function') renderReminderList();
-      if (typeof renderHomeReminders === 'function') renderHomeReminders();
-      const sp = document.getElementById('page-settings');
-      if (sp && sp.classList.contains('active') && typeof buildSettingsPage === 'function')
-        buildSettingsPage();
-    }, 500);
-    showSync('success', 'Config synced');
-  }, err => {
-    console.warn('Config listener error:', err);
-  });
-  realtimeConfigUnsub = () => configRef.off('value', configCallback);
+    const myDeviceId = _getDeviceId();
+    const dailyRef = userRef('daily_' + todayKey());
+    const configRef = userRef('config');
 
-  /* BUG 14 FIX + BUG SYNC reconnection: store callback reference */
-  realtimeConnectedUnsub = snap => {
-    if (snap.val() === true) {
-      updateFbStatus('online');
-      /* BUG SYNC: push offline changes on reconnect */
-      if (saveFailCount > 0) {
-        saveFailCount = 0;
-        debouncedSave(200);
-      }
-    } else {
-      updateFbStatus('offline');
-    }
-  };
-  rtdb.ref('.info/connected').on('value', realtimeConnectedUnsub);
+    /* ── Daily data listener ── */
+    const dailyCallback = dailyRef.on('value', snap => {
+        realtimeRetryCount = 0;
+        if (!snap.exists()) return;
+        const remote = snap.val();
+        if (!remote) return;
+
+        /* ECHO DETECTION: Skip if this snapshot was saved by this device */
+        if (remote.savedBy === myDeviceId && remote.savedAt === _lastRemoteSavedAt) {
+            return;
+        }
+
+        /* Take a snapshot of key values BEFORE merge */
+        const beforeWater = state.water || 0;
+        const beforePts = state.pts || 0;
+        const beforeTotalPts = state.totalPts || 0;
+        const beforeChecks = JSON.stringify(state.checks || {});
+        const beforeCtStudyHrs = state.ctStudyHrs || 0;
+        const beforeCtStreakDays = state.ctStreakDays || 0;
+
+        /* Apply remote data (merge) */
+        applyDailyDoc(remote);
+
+        /* Check if local merge produced HIGHER values than remote */
+        const localHasMore =
+            (state.water || 0) > (remote.water || 0) ||
+            (state.pts || 0) > (remote.pts || 0) ||
+            (state.totalPts || 0) > (remote.totalPts || 0) ||
+            (state.ctStudyHrs || 0) > (remote.ctStudyHrs || 0) ||
+            (state.ctStreakDays || 0) > (remote.ctStreakDays || 0) ||
+            JSON.stringify(state.checks || {}) !== JSON.stringify(remote.checks || {});
+
+        /* Save locally */
+        try { safeLocalStorageSave(DB_KEY, JSON.stringify(state)); } catch(e) {}
+
+        /* Refresh UI */
+        refreshUILightweight();
+
+        /* CRITICAL: If local state has MORE data than remote, push it back */
+        if (localHasMore) {
+            console.log('Sandy Brain: Local has higher values, pushing merge back to Firebase');
+            debouncedSave(800);
+        }
+
+        /* Check if state actually changed to avoid unnecessary UI updates */
+        const changed =
+            beforeWater !== (state.water || 0) ||
+            beforePts !== (state.pts || 0) ||
+            beforeTotalPts !== (state.totalPts || 0) ||
+            beforeChecks !== JSON.stringify(state.checks || {}) ||
+            beforeCtStudyHrs !== (state.ctStudyHrs || 0) ||
+            beforeCtStreakDays !== (state.ctStreakDays || 0);
+
+        if (changed) {
+            showSync('success', 'Updated from other device');
+        }
+    }, err => {
+        console.warn('Daily listener error:', err);
+        updateFbStatus('offline');
+        realtimeRetryCount++;
+        if (realtimeRetryCount <= REALTIME_MAX_RETRIES) {
+            const delay = Math.min(REALTIME_BASE_DELAY * Math.pow(1.5, realtimeRetryCount), 60000);
+            setTimeout(startRealtimeSync, delay);
+        }
+    });
+
+    realtimeUnsub = () => dailyRef.off('value', dailyCallback);
+
+    /* ── Config listener ── */
+    const configCallback = configRef.on('value', snap => {
+        if (!snap.exists()) return;
+        const remote = snap.val();
+        if (!remote) return;
+
+        /* Echo detection for config */
+        if (remote.updatedAt === _lastRemoteSavedAt) return;
+
+        applyConfigDoc(remote);
+        try { safeLocalStorageSave(DB_KEY, JSON.stringify(state)); } catch(e) {}
+
+        if (_configSyncTimer) clearTimeout(_configSyncTimer);
+        _configSyncTimer = setTimeout(() => {
+            _configSyncTimer = null;
+            if (typeof handleConfigSyncRebuild === 'function') handleConfigSyncRebuild();
+            if (typeof renderReminderList === 'function') renderReminderList();
+            if (typeof renderHomeReminders === 'function') renderHomeReminders();
+            const sp = document.getElementById('page-settings');
+            if (sp && sp.classList.contains('active') && typeof buildSettingsPage === 'function')
+                buildSettingsPage();
+        }, 500);
+
+        showSync('success', 'Config synced');
+    }, err => {
+        console.warn('Config listener error:', err);
+    });
+
+    realtimeConfigUnsub = () => configRef.off('value', configCallback);
+
+    /* ── Connection state listener ── */
+    realtimeConnectedUnsub = snap => {
+        if (snap.val() === true) {
+            updateFbStatus('online');
+            /* Push any pending local changes on reconnect */
+            debouncedSave(500);
+        } else {
+            updateFbStatus('offline');
+        }
+    };
+    rtdb.ref('.info/connected').on('value', realtimeConnectedUnsub);
 }
+
 
 /* ═══════════════════════════════════════════════════════════════
    DAILY RESET
@@ -2432,12 +2553,26 @@ function handleConfigSyncRebuild() {
    FORCE SYNC
 ═══════════════════════════════════════════════════════════════ */
 async function forceSyncAll() {
-  showToast('Force syncing...');
-  saveFailCount = 0;
-  await save();
-  startRealtimeSync();
-  showToast('All data synced!','gt');
+    showToast('Force syncing...');
+    saveFailCount = 0;
+    _lastRemoteSavedAt = '';
+    await save();
+    try {
+        const [dailySnap, configSnap] = await Promise.all([
+            userRef('daily_' + todayKey()).once('value'),
+            userRef('config').once('value')
+        ]);
+        if (dailySnap.exists()) applyDailyDoc(dailySnap.val());
+        if (configSnap.exists()) applyConfigDoc(configSnap.val());
+        try { safeLocalStorageSave(DB_KEY, JSON.stringify(state)); } catch(e) {}
+        refreshUILightweight();
+    } catch(e) {
+        console.warn('Force sync read failed:', e);
+    }
+    startRealtimeSync();
+    showToast('All data synced across devices!', 'gt');
 }
+
 
 /* ═══════════════════════════════════════════════════════════════
    LOADING SCREEN
