@@ -1,519 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-
-  <!-- ═══════════════════════════════════════════════
-       VIEWPORT & PWA META
-  ═══════════════════════════════════════════════ -->
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"
-  />
-  <meta name="mobile-web-app-capable"            content="yes" />
-  <meta name="apple-mobile-web-app-capable"      content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title"        content="Sandy Brain" />
-  <meta name="theme-color"                       content="#7C3AED" />
-  <meta name="description"                       content="Sandy's personal health, habit and career tracker" />
-
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Sandy Brain"/>
+  <meta name="theme-color" content="#7C3AED"/>
   <title>Sandy's Second Brain 🧠</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles/main.css"/>
 
-  <!-- ═══════════════════════════════════════════════
-       FAVICON (inline SVG — no 404 risk)
-  ═══════════════════════════════════════════════ -->
-  <link
-    rel="icon"
-    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E"
-  />
-  <link
-    rel="apple-touch-icon"
-    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%237C3AED'/%3E%3Ctext x='50%25' y='55%25' font-size='100' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E"
-  />
-
-  <!-- ═══════════════════════════════════════════════
-       FONTS
-  ═══════════════════════════════════════════════ -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;900&display=swap"
-    rel="stylesheet"
-  />
-
-  <!-- ═══════════════════════════════════════════════
-       STYLES
-  ═══════════════════════════════════════════════ -->
-  <link rel="stylesheet" href="styles/main.css" />
-
-  <!-- ═══════════════════════════════════════════════
-       FIREBASE (must load before ES modules)
-  ═══════════════════════════════════════════════ -->
+  <!-- Firebase (compat SDK — keep before modules) -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 </head>
-
 <body>
 
-  <!-- ═══════════════════════════════════════════════
-       ACCESSIBILITY: SKIP LINK
-  ═══════════════════════════════════════════════ -->
-  <a href="#page-today" class="skip-link">Skip to content</a>
+<a href="#page-today" class="skip-link">Skip to content</a>
 
-  <!-- ═══════════════════════════════════════════════
-       SCREEN READER LIVE REGION
-  ═══════════════════════════════════════════════ -->
-  <div
-    aria-live="polite"
-    aria-atomic="true"
-    class="sr-only"
-    id="aria-announce"
-  ></div>
+<div class="app-wrapper">
 
-  <!-- ═══════════════════════════════════════════════
-       APP LOADING SCREEN
-  ═══════════════════════════════════════════════ -->
-  <div
-    id="app-loading-screen"
-    role="status"
-    aria-label="Loading Sandy's Second Brain"
-  >
-    <div class="loading-brain" aria-hidden="true">🧠</div>
-    <div class="loading-title">Sandy's Second Brain</div>
-    <div class="loading-sub">Loading your data...</div>
-    <div class="loading-bar-wrap">
-      <div id="loading-bar" class="loading-bar-fill"></div>
-    </div>
-    <div id="loading-step" class="loading-step"></div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════
-       SYNC STATUS PILL (top-right)
-  ═══════════════════════════════════════════════ -->
-  <div
-    class="sync-status"
-    id="sync-status"
-    role="status"
-    aria-live="polite"
-  >
+  <!-- Sync status -->
+  <div class="sync-status" id="sync-status" role="status" aria-live="polite">
     <div class="sync-dot" id="sync-dot"></div>
     <span id="sync-text">Syncing...</span>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       MAIN APP WRAPPER
-  ═══════════════════════════════════════════════ -->
-  <div class="app-wrapper">
-
-    <!-- ─────────────────────────────────────────
-         THEME HERO (greeting + time + XP)
-    ───────────────────────────────────────── -->
-    <div class="theme-hero" id="theme-hero">
-      <div class="theme-hero-bg"    id="theme-hero-bg"></div>
-      <div class="theme-hero-sun"   id="theme-hero-sun"></div>
-      <div class="theme-hero-moon"  id="theme-hero-moon"></div>
-      <div class="theme-hero-stars" id="theme-hero-stars"></div>
-
-      <div class="theme-cloud cloud-a" id="theme-cloud-a"></div>
-      <div class="theme-cloud cloud-b" id="theme-cloud-b"></div>
-      <div class="theme-cloud cloud-c" id="theme-cloud-c"></div>
-      <div class="theme-cloud cloud-d" id="theme-cloud-d"></div>
-
-      <div
-        class="theme-date-pill"
-        id="theme-date-pill"
-        aria-label="Current date and time"
-      >Loading...</div>
-
-      <div class="theme-greeting-row">
-        <div class="theme-label" id="theme-greeting-label">GOOD MORNING</div>
-        <div class="theme-name"  id="theme-greeting-name">Sandy!</div>
-        <div class="theme-sub"   id="theme-greeting-sub">The world is waking up with you.</div>
-
-        <div class="theme-pills-row">
-          <span class="theme-xp-pill"   id="theme-xp-pill"   aria-label="Experience points">0 XP</span>
-          <span class="theme-grow-pill" id="theme-grow-pill">GROWING</span>
-          <span class="theme-sync-row">
-            <span class="theme-sync-dot"></span>
-            <span id="theme-sync-text">Live sync</span>
-          </span>
-        </div>
+  <!-- Theme hero -->
+  <div class="theme-hero" id="theme-hero">
+    <div class="theme-hero-bg" id="theme-hero-bg"></div>
+    <div class="theme-hero-sun" id="theme-hero-sun"></div>
+    <div class="theme-hero-moon" id="theme-hero-moon"></div>
+    <div class="theme-hero-stars" id="theme-hero-stars"></div>
+    <div class="theme-cloud cloud-a" id="theme-cloud-a"></div>
+    <div class="theme-cloud cloud-b" id="theme-cloud-b"></div>
+    <div class="theme-cloud cloud-c" id="theme-cloud-c"></div>
+    <div class="theme-cloud cloud-d" id="theme-cloud-d"></div>
+    <div class="theme-date-pill" id="theme-date-pill" aria-label="Current date and time">Loading...</div>
+    <div class="theme-greeting-row">
+      <div class="theme-label" id="theme-greeting-label">GOOD MORNING</div>
+      <div class="theme-name" id="theme-greeting-name">Sandy!</div>
+      <div class="theme-sub" id="theme-greeting-sub">The world is waking up with you.</div>
+      <div class="theme-pills-row">
+        <span class="theme-xp-pill" id="theme-xp-pill" aria-label="Experience points">0 XP</span>
+        <span class="theme-grow-pill" id="theme-grow-pill">GROWING</span>
+        <span class="theme-sync-row">
+          <span class="theme-sync-dot"></span>
+          <span id="theme-sync-text">Live sync</span>
+        </span>
       </div>
     </div>
+  </div>
 
-    <!-- ─────────────────────────────────────────
-         HORIZON LINE
-    ───────────────────────────────────────── -->
-    <div class="theme-horizon" id="theme-horizon"></div>
+  <div class="theme-horizon" id="theme-horizon"></div>
 
-    <!-- ─────────────────────────────────────────
-         XP LEVEL PROGRESS BAR
-    ───────────────────────────────────────── -->
-    <div class="theme-prog-wrap" id="theme-prog-wrap">
-      <div class="theme-prog-label" id="theme-prog-label">LEVEL PROGRESS</div>
-      <div
-        class="theme-prog-track"
-        role="progressbar"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        aria-valuenow="0"
-        aria-label="Level progress"
-      >
-        <div class="theme-prog-fill" id="theme-prog-fill" style="width:0%"></div>
+  <!-- XP progress bar -->
+  <div class="theme-prog-wrap" id="theme-prog-wrap">
+    <div class="theme-prog-label" id="theme-prog-label">LEVEL PROGRESS</div>
+    <div class="theme-prog-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="theme-prog-fill" id="theme-prog-fill" style="width:0%"></div>
+    </div>
+    <div class="theme-prog-meta">
+      <span class="theme-prog-level-badge" id="theme-prog-level-badge">Beginner</span>
+      <span class="theme-prog-right" id="theme-prog-right">Complete tasks to level up!</span>
+    </div>
+  </div>
+
+  <!-- Firebase status -->
+  <div class="firebase-status" id="firebase-status-bar" role="status">
+    <div class="fb-dot" id="fb-dot"></div>
+    <span id="fb-status-text">Connecting...</span>
+  </div>
+
+  <!-- Stats banner -->
+  <div class="stats-banner" id="stats-banner" role="toolbar" aria-label="Today's stats">
+    <div class="stats-banner-item water-item" role="button" tabindex="0" aria-label="Water tracker" onclick="showPage('today',document.querySelector('.nb'))">
+      <div class="stats-banner-value" id="sb-water-val">0/11</div>
+      <div class="stats-banner-label">WATER</div>
+      <div class="stats-banner-bar-wrap"><div class="stats-banner-bar-fill" id="sb-water-bar" style="width:0%;background:#0284c7;"></div></div>
+      <div class="stats-banner-sub" id="sb-water-sub" style="background:#eff6ff;color:#0284c7;border-color:#bfdbfe;">0ml</div>
+    </div>
+    <div class="stats-banner-item sugar-item" role="button" tabindex="0" aria-label="Sugar tracker" onclick="showPage('junk',document.querySelectorAll('.nb')[3])">
+      <div class="stats-banner-value" id="sb-sugar-val">0g</div>
+      <div class="stats-banner-label">SUGAR</div>
+      <div class="stats-banner-bar-wrap"><div class="stats-banner-bar-fill" id="sb-sugar-bar" style="width:0%;background:#22c55e;"></div></div>
+      <div class="stats-banner-sub" id="sb-sugar-sub" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">0/50g</div>
+    </div>
+    <div class="stats-banner-item study-item" role="button" tabindex="0" aria-label="Study tracker" onclick="showPage('study',document.querySelectorAll('.nb')[1])">
+      <div class="stats-banner-value" id="sb-study-val">0h</div>
+      <div class="stats-banner-label">STUDY</div>
+      <div class="stats-banner-bar-wrap"><div class="stats-banner-bar-fill" id="sb-study-bar" style="width:0%;background:#f59e0b;"></div></div>
+      <div class="stats-banner-sub" id="sb-study-sub" style="background:#fffbeb;color:#d97706;border-color:#fde68a;">0/4 hrs</div>
+    </div>
+    <div class="stats-banner-item junk-item" role="button" tabindex="0" aria-label="Junk food tracker" onclick="showPage('junk',document.querySelectorAll('.nb')[3])">
+      <div class="stats-banner-value" id="sb-junk-val">0/4</div>
+      <div class="stats-banner-label">JUNK/MO</div>
+      <div class="stats-banner-bar-wrap"><div class="stats-banner-bar-fill" id="sb-junk-bar" style="width:0%;background:#22c55e;"></div></div>
+      <div class="stats-banner-sub" id="sb-junk-sub" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">Clean</div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav role="navigation" aria-label="Main navigation">
+    <button class="nb active" onclick="showPage('today',this)" aria-current="page">☀️ Today</button>
+    <button class="nb" onclick="showPage('study',this)">📊 Career</button>
+    <button class="nb" onclick="showPage('english',this)">💬 English</button>
+    <button class="nb" onclick="showPage('junk',this)">🍬 Junk + Sugar</button>
+    <button class="nb" onclick="showPage('weekly',this)">📅 Weekly</button>
+    <button class="nb" onclick="showPage('reminders',this)">🔔 Reminders</button>
+    <button class="nb" onclick="showPage('settings',this)">⚙️ Settings</button>
+  </nav>
+
+  <div class="banner" id="banner" role="status" aria-live="polite">New day — checklist reset automatically</div>
+
+  <!-- Page: Today -->
+  <div class="page active" id="page-today">
+    <div class="missed-banner" id="missed-banner" role="alert">
+      <div class="missed-banner-header">
+        <div class="missed-banner-title">Missed tasks today</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="missed-banner-pct" id="missed-pct-badge">0% done</span>
+          <button class="missed-banner-close" onclick="closeMissedBanner()" aria-label="Close missed tasks banner">x</button>
+        </div>
       </div>
-      <div class="theme-prog-meta">
-        <span class="theme-prog-level-badge" id="theme-prog-level-badge">Beginner</span>
-        <span class="theme-prog-right"       id="theme-prog-right">Complete tasks to level up!</span>
-      </div>
+      <div class="missed-task-list" id="missed-task-list" role="list"></div>
     </div>
 
-    <!-- ─────────────────────────────────────────
-         FIREBASE CONNECTION STATUS
-    ───────────────────────────────────────── -->
-    <div
-      class="firebase-status"
-      id="firebase-status-bar"
-      role="status"
-      aria-live="polite"
-    >
-      <div class="fb-dot" id="fb-dot"></div>
-      <span id="fb-status-text">Connecting...</span>
+    <div class="inapp-notif" id="inapp-notif" role="alert" aria-live="assertive">
+      <div class="inapp-notif-icon" id="inapp-icon" aria-hidden="true"></div>
+      <div class="inapp-notif-body">
+        <div class="inapp-notif-title" id="inapp-title"></div>
+        <div class="inapp-notif-msg" id="inapp-msg"></div>
+      </div>
+      <button class="inapp-notif-close" onclick="closeInApp()" aria-label="Close notification">x</button>
     </div>
 
-    <!-- ─────────────────────────────────────────
-         STATS BANNER (water / sugar / study / junk)
-    ───────────────────────────────────────── -->
-    <div
-      class="stats-banner"
-      id="stats-banner"
-      role="toolbar"
-      aria-label="Today's stats"
-    >
-      <!-- Water -->
-      <div
-        class="stats-banner-item water-item"
-        role="button"
-        tabindex="0"
-        aria-label="Water tracker"
-        data-nav-to="today"
-      >
-        <div class="stats-banner-value" id="sb-water-val">0/11</div>
-        <div class="stats-banner-label">WATER</div>
-        <div class="stats-banner-bar-wrap">
-          <div class="stats-banner-bar-fill" id="sb-water-bar" style="width:0%;background:#0284c7;"></div>
-        </div>
-        <div class="stats-banner-sub" id="sb-water-sub">0ml</div>
+    <div class="home-reminders-panel" aria-label="Today's reminders">
+      <div class="home-rem-header">
+        <div class="home-rem-title">Today's Reminders</div>
+        <span class="home-rem-count" id="home-rem-count" aria-live="polite">0</span>
       </div>
-
-      <!-- Sugar -->
-      <div
-        class="stats-banner-item sugar-item"
-        role="button"
-        tabindex="0"
-        aria-label="Sugar tracker"
-        data-nav-to="junk"
-      >
-        <div class="stats-banner-value" id="sb-sugar-val">0g</div>
-        <div class="stats-banner-label">SUGAR</div>
-        <div class="stats-banner-bar-wrap">
-          <div class="stats-banner-bar-fill" id="sb-sugar-bar" style="width:0%;background:#22c55e;"></div>
-        </div>
-        <div class="stats-banner-sub" id="sb-sugar-sub">0/50g</div>
-      </div>
-
-      <!-- Study -->
-      <div
-        class="stats-banner-item study-item"
-        role="button"
-        tabindex="0"
-        aria-label="Study tracker"
-        data-nav-to="study"
-      >
-        <div class="stats-banner-value" id="sb-study-val">0h</div>
-        <div class="stats-banner-label">STUDY</div>
-        <div class="stats-banner-bar-wrap">
-          <div class="stats-banner-bar-fill" id="sb-study-bar" style="width:0%;background:#f59e0b;"></div>
-        </div>
-        <div class="stats-banner-sub" id="sb-study-sub">0/4 hrs</div>
-      </div>
-
-      <!-- Junk -->
-      <div
-        class="stats-banner-item junk-item"
-        role="button"
-        tabindex="0"
-        aria-label="Junk food tracker (monthly)"
-        data-nav-to="junk"
-      >
-        <div class="stats-banner-value" id="sb-junk-val">0/4</div>
-        <div class="stats-banner-label">JUNK/MO</div>
-        <div class="stats-banner-bar-wrap">
-          <div class="stats-banner-bar-fill" id="sb-junk-bar" style="width:0%;background:#22c55e;"></div>
-        </div>
-        <div class="stats-banner-sub" id="sb-junk-sub">Clean</div>
-      </div>
+      <div class="home-rem-list" id="home-rem-list" role="list"></div>
     </div>
 
-    <!-- ─────────────────────────────────────────
-         MAIN NAVIGATION
-    ───────────────────────────────────────── -->
-    <nav role="navigation" aria-label="Main navigation">
-      <button class="nb active" data-page="today"     aria-current="page">☀️ Today</button>
-      <button class="nb"        data-page="study"                        >📊 Career</button>
-      <button class="nb"        data-page="english"                      >💬 English</button>
-      <button class="nb"        data-page="junk"                         >🍬 Junk + Sugar</button>
-      <button class="nb"        data-page="weekly"                       >📅 Weekly</button>
-      <button class="nb"        data-page="reminders"                    >🔔 Reminders</button>
-      <button class="nb"        data-page="settings"                     >⚙️ Settings</button>
-    </nav>
+    <div class="sc" id="today-weekly-panel" style="margin-bottom:16px;">
+      <div class="sh">
+        <span class="si" aria-hidden="true">📅</span>
+        <span class="st">This Week's Tasks</span>
+        <span class="stag" id="today-weekly-count">0 tasks</span>
+        <button onclick="showPage('weekly',document.querySelectorAll('.nb')[4])"
+          style="margin-left:8px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;border:1px solid var(--purple-200);background:var(--purple-50);color:var(--purple-600);cursor:pointer;font-family:var(--font);"
+          aria-label="View all weekly tasks">View All</button>
+      </div>
+      <div id="today-weekly-list" style="padding:8px 14px;display:flex;flex-direction:column;gap:6px;" role="list"></div>
+    </div>
 
-    <!-- ─────────────────────────────────────────
-         NEW DAY BANNER
-    ───────────────────────────────────────── -->
-    <div
-      class="banner"
-      id="banner"
-      role="status"
-      aria-live="polite"
-    >New day — checklist reset automatically</div>
-
-    <!-- ═══════════════════════════════════════
-         PAGE: TODAY
-    ═══════════════════════════════════════ -->
-    <div
-      class="page active"
-      id="page-today"
-      role="main"
-      aria-label="Today's habits"
-    >
-
-      <!-- Missed tasks banner -->
-      <div class="missed-banner" id="missed-banner" role="alert">
-        <div class="missed-banner-header">
-          <div class="missed-banner-title">Missed tasks today</div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span class="missed-banner-pct" id="missed-pct-badge">0% done</span>
-            <button
-              class="missed-banner-close"
-              onclick="closeMissedBanner()"
-              aria-label="Close missed tasks banner"
-            >✕</button>
+    <div class="summary-cards-row">
+      <div class="streak-card" id="streak-card" style="background:linear-gradient(135deg,#6B7280,#4B5563)" role="region" aria-label="Study streak">
+        <div class="streak-card-inner">
+          <div class="streak-tree-area" id="streak-tree-area" aria-hidden="true"></div>
+          <div class="streak-info">
+            <div class="streak-number" id="streak-number">0</div>
+            <div class="streak-label">Day Streak</div>
+            <div class="streak-sub" id="streak-sub">Start today! Plant the seed</div>
           </div>
         </div>
-        <div class="missed-task-list" id="missed-task-list" role="list"></div>
+        <div class="streak-dots-row" id="streak-dots-row" aria-hidden="true"></div>
       </div>
 
-      <!-- In-app notification -->
-      <div
-        class="inapp-notif"
-        id="inapp-notif"
-        role="alert"
-        aria-live="assertive"
-      >
-        <div class="inapp-notif-icon" id="inapp-icon"   aria-hidden="true"></div>
-        <div class="inapp-notif-body">
-          <div class="inapp-notif-title" id="inapp-title"></div>
-          <div class="inapp-notif-msg"   id="inapp-msg"></div>
+      <div class="tasks-card" role="region" aria-label="Task completion">
+        <div class="tasks-card-number" id="sum-tasks-num">0</div>
+        <div class="tasks-card-label" id="sum-tasks-label">/ 0 Tasks Done</div>
+        <div class="tasks-card-sub" id="sum-tasks-sub">Start checking off tasks!</div>
+        <div class="tasks-mini-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="tasks-mini-bar-fill" id="sum-task-bar-fill" style="width:0%"></div>
         </div>
-        <button
-          class="inapp-notif-close"
-          onclick="closeInApp()"
-          aria-label="Close notification"
-        >✕</button>
+        <div class="tasks-pct" id="sum-task-pct">0% done</div>
+        <div class="tasks-dots-row" id="tasks-dots-row" aria-hidden="true"></div>
       </div>
 
-      <!-- Today's reminders panel -->
-      <div class="home-reminders-panel" aria-label="Today's reminders">
-        <div class="home-rem-header">
-          <div class="home-rem-title">Today's Reminders</div>
-          <span class="home-rem-count" id="home-rem-count" aria-live="polite">0</span>
-        </div>
-        <div class="home-rem-list" id="home-rem-list" role="list"></div>
+      <div class="badges-summary-card" role="region" aria-label="Badges earned">
+        <div class="badges-card-title">My Badges</div>
+        <div class="badges-card-sub" id="sum-badges-sub">0 earned</div>
+        <div class="badges-icons-row" id="sum-badges-row" aria-hidden="true"></div>
+        <button class="badges-view-btn" onclick="openBadges()" aria-label="View all badges">View All</button>
+        <div class="badges-dots-row" id="badges-dots-row" aria-hidden="true"></div>
       </div>
+    </div>
 
-      <!-- This week's tasks panel -->
-      <div class="sc" id="today-weekly-panel" style="margin-bottom:16px;">
-        <div class="sh">
-          <span class="si" aria-hidden="true">📅</span>
-          <span class="st">This Week's Tasks</span>
-          <span class="stag" id="today-weekly-count">0 tasks</span>
-          <button
-            data-page="weekly"
-            class="nb-inline"
-            aria-label="View all weekly tasks"
-          >View All</button>
-        </div>
-        <div
-          id="today-weekly-list"
-          style="padding:8px 14px;display:flex;flex-direction:column;gap:6px;"
-          role="list"
-        ></div>
+    <div id="today-sections" role="main" aria-label="Today's habit sections"></div>
+
+    <div class="reset-row">
+      <button class="rbtn" onclick="resetToday()">Reset today's checklist</button>
+    </div>
+
+    <div class="theme-footer-bar" id="theme-footer-bar" role="contentinfo">
+      <div class="theme-footer-quote" id="theme-footer-quote">"Rise up, start fresh — see the bright opportunity in each new day."</div>
+      <div class="theme-footer-chips">
+        <span class="theme-footer-chip" id="footer-chip-streak">0 Day Streak</span>
+        <span class="theme-footer-chip" id="footer-chip-tasks">0/0 Tasks</span>
+        <span class="theme-footer-chip" id="footer-chip-xp">0 XP</span>
       </div>
+    </div>
+  </div>
 
-      <!-- Summary cards (streak / tasks / badges) -->
-      <div class="summary-cards-row">
+  <!-- Other pages (built by JS) -->
+  <div class="page" id="page-study" role="main" aria-label="Career tracker"></div>
+  <div class="page" id="page-english" role="main" aria-label="Language progress"></div>
+  <div class="page" id="page-junk" role="main" aria-label="Junk food tracker"></div>
+  <div class="page" id="page-weekly" role="main" aria-label="Weekly planner"></div>
+  <div class="page" id="page-reminders" role="main" aria-label="Reminders"></div>
+  <div class="page" id="page-settings" role="main" aria-label="Settings"></div>
 
-        <!-- Streak card -->
-        <div
-          class="streak-card"
-          id="streak-card"
-          style="background:linear-gradient(135deg,#6B7280,#4B5563)"
-          role="region"
-          aria-label="Study streak"
-        >
-          <div class="streak-card-inner">
-            <div class="streak-tree-area" id="streak-tree-area" aria-hidden="true"></div>
-            <div class="streak-info">
-              <div class="streak-number" id="streak-number">0</div>
-              <div class="streak-label">Day Streak</div>
-              <div class="streak-sub"   id="streak-sub">Start today! Plant the seed</div>
-            </div>
-          </div>
-          <div class="streak-dots-row" id="streak-dots-row" aria-hidden="true"></div>
-        </div>
-
-        <!-- Tasks completion card -->
-        <div class="tasks-card" role="region" aria-label="Task completion">
-          <div class="tasks-card-number"  id="sum-tasks-num">0</div>
-          <div class="tasks-card-label"   id="sum-tasks-label">/ 0 Tasks Done</div>
-          <div class="tasks-card-sub"     id="sum-tasks-sub">Start checking off tasks!</div>
-          <div
-            class="tasks-mini-bar"
-            role="progressbar"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            aria-valuenow="0"
-            aria-label="Tasks completion"
-          >
-            <div class="tasks-mini-bar-fill" id="sum-task-bar-fill" style="width:0%"></div>
-          </div>
-          <div class="tasks-pct"      id="sum-task-pct">0% done</div>
-          <div class="tasks-dots-row" id="tasks-dots-row" aria-hidden="true"></div>
-        </div>
-
-        <!-- Badges card -->
-        <div class="badges-summary-card" role="region" aria-label="Badges earned">
-          <div class="badges-card-title">My Badges</div>
-          <div class="badges-card-sub" id="sum-badges-sub">0 earned</div>
-          <div class="badges-icons-row" id="sum-badges-row" aria-hidden="true"></div>
-          <button
-            class="badges-view-btn"
-            onclick="openBadges()"
-            aria-label="View all badges"
-          >View All</button>
-          <div class="badges-dots-row" id="badges-dots-row" aria-hidden="true"></div>
-        </div>
-
-      </div>
-
-      <!-- Habit sections (built dynamically by today.js) -->
-      <div
-        id="today-sections"
-        role="main"
-        aria-label="Today's habit sections"
-      ></div>
-
-      <!-- Reset button -->
-      <div class="reset-row">
-        <button class="rbtn" onclick="resetToday()">Reset today's checklist</button>
-      </div>
-
-      <!-- Footer bar -->
-      <div class="theme-footer-bar" id="theme-footer-bar" role="contentinfo">
-        <div class="theme-footer-quote" id="theme-footer-quote">
-          "Rise up, start fresh — see the bright opportunity in each new day."
-        </div>
-        <div class="theme-footer-chips">
-          <span class="theme-footer-chip" id="footer-chip-streak">0 Day Streak</span>
-          <span class="theme-footer-chip" id="footer-chip-tasks">0/0 Tasks</span>
-          <span class="theme-footer-chip" id="footer-chip-xp">0 XP</span>
-        </div>
-      </div>
-
-    </div><!-- /#page-today -->
-
-    <!-- ═══════════════════════════════════════
-         PAGE: CAREER / STUDY
-         (inner HTML built by career.js)
-    ═══════════════════════════════════════ -->
-    <div
-      class="page"
-      id="page-study"
-      role="main"
-      aria-label="Career tracker"
-    ></div>
-
-    <!-- ═══════════════════════════════════════
-         PAGE: ENGLISH / LANGUAGE
-         (inner HTML built by english.js)
-    ═══════════════════════════════════════ -->
-    <div
-      class="page"
-      id="page-english"
-      role="main"
-      aria-label="Language progress"
-    ></div>
-
-    <!-- ═══════════════════════════════════════
-         PAGE: JUNK + SUGAR
-         (inner HTML built by junk.js)
-    ═══════════════════════════════════════ -->
-    <div
-      class="page"
-      id="page-junk"
-      role="main"
-      aria-label="Junk food tracker"
-    ></div>
-
-    <!-- ═══════════════════════════════════════
-         PAGE: WEEKLY PLANNER
-         (inner HTML built by weekly.js)
-    ═══════════════════════════════════════ -->
-    <div
-      class="page"
-      id="page-weekly"
-      role="main"
-      aria-label="Weekly planner"
-    ></div>
-
-    <!-- ═══════════════════════════════════════
-         PAGE: REMINDERS
-         (inner HTML built by reminders.js)
-    ═══════════════════════════════════════ -->
-    <div
-      class="page"
-      id="page-reminders"
-      role="main"
-      aria-label="Reminders"
-    ></div>
-
-    <!-- ═══════════════════════════════════════
-         PAGE: SETTINGS
-         (inner HTML built by settings.js)
-    ═══════════════════════════════════════ -->
-    <div
-      class="page"
-      id="page-settings"
-      role="main"
-      aria-label="Settings"
-    ></div>
-
-  </div><!-- /.app-wrapper -->
-
-
-  <!-- ═══════════════════════════════════════════════
-       MODALS
-  ═══════════════════════════════════════════════ -->
-
-  <!-- Badges modal -->
-  <div
-    class="modal-overlay"
-    id="badges-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-label="All badges"
-  >
+  <!-- Modals -->
+  <div class="modal-overlay" id="badges-modal" role="dialog" aria-modal="true" aria-label="All badges" onclick="if(event.target===this)closeBadges()">
     <div class="modal-sheet">
       <div class="modal-handle" aria-hidden="true"></div>
       <div class="modal-title">Your Badges</div>
@@ -521,228 +226,121 @@
     </div>
   </div>
 
-  <!-- Edit habit modal -->
-  <div
-    class="edit-modal"
-    id="edit-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-label="Edit habit"
-  >
+  <div class="edit-modal" id="edit-modal" role="dialog" aria-modal="true" aria-label="Edit habit">
     <div class="edit-box">
       <div class="edit-title">Edit Habit</div>
-      <div class="edit-field">
-        <label class="edit-label" for="edit-habit-name">Habit name</label>
-        <input class="settings-input" id="edit-habit-name" maxlength="80" />
-      </div>
-      <div class="edit-field">
-        <label class="edit-label" for="edit-habit-note">Sub-note</label>
-        <input class="settings-input" id="edit-habit-note" maxlength="100" />
-      </div>
-      <div class="edit-field">
-        <label class="edit-label" for="edit-habit-section">Section</label>
-        <select class="settings-select" id="edit-habit-section" style="width:100%;"></select>
-      </div>
-      <div class="edit-field">
-        <label class="edit-label" for="edit-habit-pts">Points (1–20)</label>
-        <input class="settings-pts" id="edit-habit-pts" type="number" min="1" max="20" style="width:100%;" />
-      </div>
-      <div class="edit-row">
-        <button class="edit-cancel" onclick="closeEditModal()">Cancel</button>
-        <button class="edit-save"   onclick="saveEditHabit()">Save</button>
-      </div>
+      <div class="edit-field"><label class="edit-label" for="edit-habit-name">Habit name</label><input class="settings-input" id="edit-habit-name" style="width:100%;" maxlength="80"/></div>
+      <div class="edit-field"><label class="edit-label" for="edit-habit-note">Sub-note</label><input class="settings-input" id="edit-habit-note" style="width:100%;" maxlength="100"/></div>
+      <div class="edit-field"><label class="edit-label" for="edit-habit-section">Section</label><select class="settings-select" id="edit-habit-section" style="width:100%;"></select></div>
+      <div class="edit-field"><label class="edit-label" for="edit-habit-pts">Points (1-20)</label><input class="settings-pts" id="edit-habit-pts" type="number" min="1" max="20" style="width:100%;"/></div>
+      <div class="edit-row"><button class="edit-cancel" onclick="closeEditModal()">Cancel</button><button class="edit-save" onclick="saveEditHabit()">Save</button></div>
     </div>
   </div>
 
-  <!-- Edit weekly task modal -->
-  <div
-    class="edit-modal"
-    id="weekly-edit-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-label="Edit weekly task"
-  >
+  <div class="edit-modal" id="weekly-edit-modal" role="dialog" aria-modal="true" aria-label="Edit weekly task">
     <div class="edit-box">
       <div class="edit-title">Edit Weekly Task</div>
       <div style="display:flex;flex-direction:column;gap:10px;">
-        <div>
-          <label class="edit-label" for="wet-name">Task name</label>
-          <input class="settings-input" id="wet-name" style="width:100%;" maxlength="80" />
-        </div>
-        <div>
-          <label class="edit-label" for="wet-note">Sub-note</label>
-          <input class="settings-input" id="wet-note" style="width:100%;" maxlength="100" />
-        </div>
-        <div>
-          <label class="edit-label" for="wet-day">Day</label>
+        <div><label class="edit-label" for="wet-name">Task name</label><input class="settings-input" id="wet-name" style="width:100%;" maxlength="80"/></div>
+        <div><label class="edit-label" for="wet-note">Sub-note</label><input class="settings-input" id="wet-note" style="width:100%;" maxlength="100"/></div>
+        <div><label class="edit-label" for="wet-day">Day</label>
           <select class="settings-select" id="wet-day" style="width:100%;">
-            <option value="Mon">Mon</option>
-            <option value="Tue">Tue</option>
-            <option value="Wed">Wed</option>
-            <option value="Thu">Thu</option>
-            <option value="Fri">Fri</option>
-            <option value="Sat">Sat</option>
-            <option value="Sun">Sun</option>
-            <option value="Today">Today</option>
-            <option value="Tomorrow">Tomorrow</option>
-            <option value="Anytime">Anytime</option>
+            <option value="Mon">Mon</option><option value="Tue">Tue</option><option value="Wed">Wed</option>
+            <option value="Thu">Thu</option><option value="Fri">Fri</option><option value="Sat">Sat</option>
+            <option value="Sun">Sun</option><option value="Today">Today</option>
+            <option value="Tomorrow">Tomorrow</option><option value="Anytime">Anytime</option>
           </select>
         </div>
-        <div class="edit-row">
-          <button class="edit-cancel" onclick="closeWeeklyEditModal()">Cancel</button>
-          <button class="edit-save"   onclick="saveWeeklyEdit()">Save</button>
-        </div>
+        <div class="edit-row"><button class="edit-cancel" onclick="closeWeeklyEditModal()">Cancel</button><button class="edit-save" onclick="saveWeeklyEdit()">Save</button></div>
       </div>
     </div>
   </div>
 
-  <!-- Icon picker modal -->
-  <div
-    class="icon-picker-overlay"
-    id="icon-picker-overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-label="Choose icon"
-  >
+  <div class="icon-picker-overlay" id="icon-picker-overlay" role="dialog" aria-modal="true" aria-label="Choose icon" onclick="if(event.target===this)closeIconPicker()">
     <div class="icon-picker-sheet">
       <div class="icon-picker-handle" aria-hidden="true"></div>
       <div class="icon-picker-title">Choose Icon Style</div>
       <div class="icon-picker-sub">Pick an emoji or upload your own image</div>
-
       <div class="icon-picker-modes">
-        <div
-          class="icon-picker-mode active"
-          id="ipm-emoji"
-          role="button"
-          tabindex="0"
-          aria-label="Use emoji"
-          onclick="switchIconMode('emoji')"
-        >
+        <div class="icon-picker-mode active" id="ipm-emoji" onclick="switchIconMode('emoji')" role="button" tabindex="0">
           <div class="icon-picker-mode-icon" aria-hidden="true">😊</div>
           <div class="icon-picker-mode-title">Use Emoji</div>
           <div class="icon-picker-mode-sub">Tap to pick any emoji</div>
         </div>
-        <div
-          class="icon-picker-mode"
-          id="ipm-upload"
-          role="button"
-          tabindex="0"
-          aria-label="Upload image"
-          onclick="switchIconMode('upload')"
-        >
+        <div class="icon-picker-mode" id="ipm-upload" onclick="switchIconMode('upload')" role="button" tabindex="0">
           <div class="icon-picker-mode-icon" aria-hidden="true">📤</div>
           <div class="icon-picker-mode-title">Upload Image</div>
           <div class="icon-picker-mode-sub">JPG, PNG — fits to circle</div>
         </div>
       </div>
-
-      <!-- Emoji panel -->
-      <div class="icon-emoji-panel active" id="icon-emoji-panel">
-        <div
-          class="icon-emoji-grid"
-          id="icon-emoji-grid"
-          role="listbox"
-          aria-label="Choose emoji"
-        ></div>
-      </div>
-
-      <!-- Upload panel -->
+      <div class="icon-emoji-panel active" id="icon-emoji-panel"><div class="icon-emoji-grid" id="icon-emoji-grid" role="listbox" aria-label="Choose emoji"></div></div>
       <div class="icon-upload-panel" id="icon-upload-panel">
-        <div
-          class="icon-upload-area"
-          onclick="document.getElementById('icon-file-input').click()"
-          role="button"
-          tabindex="0"
-          aria-label="Click to upload image"
-        >
+        <div class="icon-upload-area" onclick="document.getElementById('icon-file-input').click()" role="button" tabindex="0" aria-label="Click to upload image">
           <div class="icon-upload-preview" id="icon-upload-preview" aria-hidden="true">📤</div>
           <div style="font-size:12px;font-weight:700;color:var(--text-primary);">Tap to upload image</div>
           <div style="font-size:10px;font-weight:500;color:var(--text-muted);margin-top:2px;">JPG or PNG — cropped to circle</div>
         </div>
-        <input
-          type="file"
-          id="icon-file-input"
-          accept="image/*"
-          style="display:none;"
-          onchange="handleIconUpload(this)"
-          aria-label="Upload habit icon image"
-        />
+        <input type="file" id="icon-file-input" accept="image/*" style="display:none;" onchange="handleIconUpload(this)" aria-label="Upload habit icon image"/>
       </div>
-
       <button class="icon-picker-confirm" onclick="confirmIconPick()">Use This Icon</button>
     </div>
   </div>
 
-  <!-- Biryani confirm modal -->
-  <div
-    class="edit-modal"
-    id="biryani-confirm-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-label="Confirm biryani log"
-  >
+  <div class="edit-modal" id="biryani-confirm-modal" role="dialog" aria-modal="true" onclick="if(event.target===this)closeBiryaniConfirm()">
     <div class="edit-box" style="text-align:center;max-width:340px;">
       <div style="font-size:40px;margin-bottom:10px;" aria-hidden="true">🍛</div>
       <div class="edit-title" style="text-align:center;">Log a Biryani?</div>
       <p id="biryani-confirm-body" style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;"></p>
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11px;font-weight:600;color:#d97706;text-align:left;">
-        Once logged, remove only via Activity Log
-      </div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11px;font-weight:600;color:#d97706;text-align:left;">Once logged, remove only via Activity Log</div>
       <div class="edit-row" style="margin-top:16px;">
         <button class="edit-cancel" onclick="closeBiryaniConfirm()">Cancel</button>
-        <button class="edit-save"   id="biryani-confirm-btn" onclick="confirmBiryaniLog()">Yes, Log It</button>
+        <button class="edit-save" id="biryani-confirm-btn" onclick="confirmBiryaniLog()">Yes, Log It</button>
       </div>
     </div>
   </div>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <!-- ═══════════════════════════════════════════════
-       TOAST NOTIFICATION
-  ═══════════════════════════════════════════════ -->
-  <div
-    class="toast"
-    id="toast"
-    role="status"
-    aria-live="polite"
-  ></div>
-
-
-  <!-- ═══════════════════════════════════════════════
-       NO-SCRIPT FALLBACK
-  ═══════════════════════════════════════════════ -->
-  <noscript>
-    <div style="position:fixed;inset:0;background:#fff;display:flex;align-items:center;
-                justify-content:center;flex-direction:column;gap:16px;padding:20px;
-                text-align:center;font-family:system-ui,sans-serif;z-index:99999;">
-      <div style="font-size:48px;">🧠</div>
-      <div style="font-size:20px;font-weight:700;color:#7C3AED;">Sandy's Second Brain</div>
-      <div style="font-size:14px;color:#666;max-width:320px;">
-        JavaScript is required to run this app.
-        Please enable JavaScript in your browser settings.
-      </div>
+  <!-- Loading screen -->
+  <div id="app-loading-screen" style="position:fixed;inset:0;background:linear-gradient(135deg,#7C3AED,#4F46E5);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:99998;transition:opacity 0.4s ease;pointer-events:none;" role="status" aria-label="Loading Sandy's Second Brain">
+    <div style="font-size:56px;animation:sandyPulse 1.5s ease-in-out infinite;" aria-hidden="true">🧠</div>
+    <div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px;">Sandy's Second Brain</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:500;">Loading your data...</div>
+    <div style="width:160px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;overflow:hidden;margin-top:8px;">
+      <div id="loading-bar" style="height:100%;width:0%;background:rgba(255,255,255,0.9);border-radius:2px;transition:width 0.2s ease;"></div>
     </div>
-  </noscript>
+    <div id="loading-step" style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.55);letter-spacing:0.5px;min-height:14px;"></div>
+    <style>@keyframes sandyPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}</style>
+  </div>
 
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="aria-announce"></div>
 
-  <!-- ═══════════════════════════════════════════════
-       ES MODULE SCRIPTS
-       Load order matters — core first, tabs after
-  ═══════════════════════════════════════════════ -->
-  <script type="module" src="core/state.js"></script>
-  <script type="module" src="core/utils.js"></script>
-  <script type="module" src="core/firebase.js"></script>
-  <script type="module" src="shared/theme.js"></script>
-  <script type="module" src="shared/badges.js"></script>
-  <script type="module" src="shared/water.js"></script>
-  <script type="module" src="tabs/today.js"></script>
-  <script type="module" src="tabs/career.js"></script>
-  <script type="module" src="tabs/english.js"></script>
-  <script type="module" src="tabs/junk.js"></script>
-  <script type="module" src="tabs/weekly.js"></script>
-  <script type="module" src="tabs/reminders.js"></script>
-  <script type="module" src="tabs/settings.js"></script>
-  <script type="module" src="core/init.js"></script>
-  <script type="module" src="shared/pwa.js"></script>
+</div><!-- /.app-wrapper -->
+
+<!-- Modules: order matters -->
+<script type="module" src="core/utils.js"></script>
+<script type="module" src="core/state.js"></script>
+<script type="module" src="core/firebase.js"></script>
+<script type="module" src="shared/theme.js"></script>
+<script type="module" src="shared/badges.js"></script>
+<script type="module" src="shared/water.js"></script>
+<script type="module" src="shared/pwa.js"></script>
+<script type="module" src="tabs/today.js"></script>
+<script type="module" src="tabs/career.js"></script>
+<script type="module" src="tabs/english.js"></script>
+<script type="module" src="tabs/junk.js"></script>
+<script type="module" src="tabs/weekly.js"></script>
+<script type="module" src="tabs/reminders.js"></script>
+<script type="module" src="tabs/settings.js"></script>
+<script type="module" src="core/init.js"></script>
+
+<noscript>
+  <div style="position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:20px;text-align:center;font-family:system-ui,sans-serif;z-index:99999;">
+    <div style="font-size:48px;">🧠</div>
+    <div style="font-size:20px;font-weight:700;color:#7C3AED;">Sandy's Second Brain</div>
+    <p style="font-size:14px;color:#666;max-width:320px;">JavaScript is required. Please enable it in your browser settings.</p>
+  </div>
+</noscript>
 
 </body>
 </html>
