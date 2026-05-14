@@ -1,486 +1,909 @@
 /**
- * core/init.js
- * Boot sequence — runs on DOMContentLoaded.
- * Imports all other modules to ensure they're initialized.
+ * ═══════════════════════════════════════════════════════════════
+ * core/init.js — Application startup orchestrator
+ *
+ * This module owns:
+ * - init() — complete boot sequence
+ * - Master timer (30s interval)
+ * - DOMContentLoaded entry point
+ * - Global event listeners (visibility, network, orientation)
+ * - Swipe navigation
+ * - Keyboard navigation
+ * - Focus traps for modals
+ * - Modal scroll lock
+ * - Loading screen dismissal
+ * - Orphan data cleanup
+ *
+ * This is the TOP of the dependency tree.
+ * It imports from all other modules but nothing imports from it
+ * (except dynamic import in settings.js for factory reset).
+ * ═══════════════════════════════════════════════════════════════
  */
 
-import { state, defaultState, ensureDefaults, DB_KEY_MIDNIGHT } from './state.js';
-import { todayKey, safeLocalStorageSave, showToast } from './utils.js';
-import { load, save, debouncedSave, startRealtimeSync, _detachAllListeners, loadFiredToday, saveFiredToday, firedToday } from './firebase.js';
-import { applyTheme } from '../shared/theme.js';
+import {
+  todayKey,
+  yesterdayKey,
+  DB_KEY,
+  DB_KEY_MIDNIGHT,
+  DAY_NAMES,
+  safeLocalStorageSave,
+  showToast
+} from './utils.js';
 
-'use strict';
+import {
+  state,
+  flags,
+  defaultState,
+  replaceState,
+  ensureDefaults,
+  loadFiredToday,
+  saveFiredToday
+} from './state.js';
 
-// ─── Module-level flags (shared across the app via window) ───────────────────
+import {
+  initFirebase,
+  load,
+  save,
+  debouncedSave,
+  startRealtimeSync,
+  detachAllListeners,
+  scheduleMidnightReset,
+  onSyncRefreshUI,
+  onConfigSync,
+  onMidnightReset,
+  updateFbStatus
+} from './firebase.js';
 
-export let _lastThemeKey          = '';
-export let _reminderFirstCheck    = true;
-export let _settingsNeedRebuild   = true;
-export let _lastStreakMilestone    = 0;
-export let _lastEveningWasWeekend = null;
-export let _ctDayCompletedThisSession = false;
-export let _wtAppOpenTime         = Date.now();
+import {
+  applyTheme,
+  updateReward,
+  updateSummaryCards,
+  updateStatsBanner,
+  updateFooterChips,
+  checkStreakMilestone
+} from '../shared/theme.js';
 
-// Master timer handle
-let masterTimerId   = null;
-let masterTickCount = 0;
+import { checkBadgesDebounced } from '../shared/badges.js';
 
-// ─── Daily reset ──────────────────────────────────────────────────────────────
+import {
+  buildWaterSection,
+  renderWater,
+  renderHydrationInsights,
+  wtStartAnimation,
+  wtStopAnimation,
+  wtBubbles,
+  wtCleanup,
+  wtRemInit,
+  wtRemScheduleNext,
+  bindWaterEvents
+} from '../shared/water.js';
 
-export function handleDailyReset() {
-  const today = todayKey();
-  if (state.lastDate===today) return;
+import { initPWA } from '../shared/pwa.js';
 
+import {
+  toggle,
+  applyChecks,
+  updateProg,
+  buildTodaySections,
+  rebuildTodaySections,
+  rebuildSection,
+  buildEveningSection,
+  rebuildEveningIfNeeded,
+  handleDailyReset,
+  showPage,
+  refreshUI,
+  refreshUILightweight,
+  renderHomeReminders,
+  renderTodayWeeklyPanel,
+  showInAppNotif,
+  closeInApp,
+  checkMissedTasksBanner,
+  closeMissedBanner,
+  resetToday,
+  onPageShow,
+  onLightweightRefresh,
+  onFullRefresh
+} from '../tabs/today.js';
+
+import {
+  ctInit,
+  ctRenderAll,
+  ctRenderHero,
+  ctDailyReset,
+  ctCleanWeeklyHours,
+  ctOverallPct,
+  bindCareerEvents
+} from '../tabs/career.js';
+
+import {
+  buildEnglishPage,
+  renderLangUI,
+  resetDailyLangFlags,
+  bindEnglishEvents
+} from '../tabs/english.js';
+
+import {
+  jnkBuildCatGrid,
+  jnkRenderChips,
+  jnkRenderAll,
+  jRenderSugar,
+  jRenderBiryani,
+  jRenderLogs,
+  jCheckWeekReset,
+  bindJunkEvents
+} from '../tabs/junk.js';
+
+import {
+  buildWeeklyPage,
+  wtRenderTasks,
+  wtCheckWeekReset,
+  bindWeeklyEvents
+} from '../tabs/weekly.js';
+
+import {
+  buildRemindersPage,
+  checkReminders,
+  renderReminderList,
+  buildDaysPicker,
+  buildPresetChips,
+  updateNotifStatusUI,
+  bindReminderEvents
+} from '../tabs/reminders.js';
+
+import {
+  buildSettingsPageShell,
+  buildSettingsPage,
+  updateMissedAlertDisplay,
+  handleConfigSyncRebuild,
+  bindSettingsEvents,
+  closeEditModal,
+  closeIconPicker
+} from '../tabs/settings.js';
+
+import { closeBadges } from '../shared/badges.js';
+import { closeBiryaniConfirm } from '../tabs/junk.js';
+
+
+/* ═══════════════════════════════════════════════════════════════
+   REGISTER FIREBASE CALLBACKS
+   These break the circular dependency by passing functions as
+   callbacks rather than importing init.js from firebase.js.
+   ═══════════════════════════════════════════════════════════════ */
+
+onSyncRefreshUI(() => refreshUILightweight());
+
+onConfigSync(() => {
+  handleConfigSyncRebuild();
+  renderReminderList();
+  renderHomeReminders();
+  const sp = document.getElementById('page-settings');
+  if (sp && sp.classList.contains('active')) buildSettingsPage();
+});
+
+onMidnightReset(async (resetKey) => {
   // Archive study hours
-  if ((state.ctStudyHrs||0)>0 && state.ctLastStudyDate) {
-    if (!state.ctWeeklyHours) state.ctWeeklyHours={};
+  if ((state.ctStudyHrs || 0) > 0 && state.ctLastStudyDate) {
+    if (!state.ctWeeklyHours) state.ctWeeklyHours = {};
     state.ctWeeklyHours[state.ctLastStudyDate] = Math.max(
-      state.ctWeeklyHours[state.ctLastStudyDate]||0, state.ctStudyHrs);
+      state.ctWeeklyHours[state.ctLastStudyDate] || 0, state.ctStudyHrs
+    );
   }
 
-  // Record yesterday's outcome
-  if (state.lastDate) {
-    if (!state.ctDayHistory) state.ctDayHistory={};
-    if (!state.ctDayHistory[state.lastDate]) {
-      state.ctDayHistory[state.lastDate] = state.ctDayDone
-        ? 'complete' : (state.ctStudyHrs||0)>0 ? 'partial' : 'rest';
-    }
+  // Archive day history
+  if (state.lastDate && state.ctDayHistory && !state.ctDayHistory[state.lastDate]) {
+    state.ctDayHistory[state.lastDate] = state.ctDayDone
+      ? 'complete' : (state.ctStudyHrs || 0) > 0 ? 'partial' : 'rest';
   }
 
-  if (typeof window.ctEvaluateStreak==='function') window.ctEvaluateStreak();
+  // Reset daily fields
+  state.checks = {};
+  state.water = 0;
+  state.pts = 0;
+  state.ctDayDone = false;
+  state.ctStudyHrs = 0;
+  state.ctTodayLogged = false;
+  state.ctLastStudyDate = null;
+  state.missedBannerDismissedDate = '';
+  state.lastResetTimestamp = Date.now();
 
-  state.checks={};
-  state.water=0;
-  state.pts=0;
-  state.ctDayDone=false;
-  state.ctStudyHrs=0;
-  state.ctTodayLogged=false;
-  state.ctLastStudyDate=null;
-  state.missedBannerDismissedDate='';
-  state.lastResetTimestamp=Date.now();
+  flags.firedToday = {};
+  flags.wtFilter = 'all';
+  flags.wtSceneInitialized = false;
+  flags.jnkSelected = {};
+  flags.jnkGridBuilt = false;
+  flags.saveFailCount = 0;
+  flags.ctPageBuilt = false;
+  flags.cachedSceneHeight = 0;
+  flags._lastThemeKey = '';
+  flags._reminderFirstCheck = true;
 
-  window.firedToday={};
-  _convertDayTasks();
+  resetDailyLangFlags();
+  try { jCheckWeekReset(); } catch (e) { /* ignore */ }
+  try { wtCheckWeekReset(); } catch (e) { /* ignore */ }
 
-  if (typeof window.resetDailyLangFlags==='function') window.resetDailyLangFlags();
-  try { if (typeof window.jCheckWeekReset==='function') window.jCheckWeekReset(); } catch(e){}
-  try { if (typeof window.wtCheckWeekReset==='function') window.wtCheckWeekReset(); } catch(e){}
+  state.lastDate = resetKey;
+  saveFiredToday();
+  await save();
+  refreshUI();
 
-  state.lastDate = today;
-}
+  const b = document.getElementById('banner');
+  if (b) { b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 4000); }
+  showToast('New day started! Checklist reset.', 'gt');
 
-// ─── Convert day tasks ────────────────────────────────────────────────────────
+  // Reattach listeners for new day path
+  detachAllListeners();
+  startRealtimeSync();
+});
 
-export function _convertDayTasks() {
-  if (!Array.isArray(state.weeklyTasks)) return;
-  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const todayName = dayNames[new Date().getDay()];
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
-  const tomorrowName = dayNames[tomorrow.getDay()];
-  state.weeklyTasks = state.weeklyTasks.map(t=>{
-    if (t.day==='Today')    return Object.assign({},t,{day:todayName});
-    if (t.day==='Tomorrow') return Object.assign({},t,{day:tomorrowName});
-    return t;
-  });
-}
 
-// ─── Midnight reset scheduler ─────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════
+   REGISTER LIGHTWEIGHT REFRESH CALLBACKS
+   ═══════════════════════════════════════════════════════════════ */
 
-export function scheduleMidnightReset() {
-  const now = new Date();
-  const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0, 0, 2, 0);
-  const msUntil = Math.max(0, nextMidnight-now);
+onLightweightRefresh(() => {
+  if (document.getElementById('ct-root')) ctRenderAll();
+  renderLangUI();
+  jnkRenderAll();
+  jRenderSugar();
+  jRenderBiryani();
+});
 
-  clearTimeout(scheduleMidnightReset._timer);
-  scheduleMidnightReset._timer = setTimeout(async()=>{
-    const resetKey = todayKey();
-    const storedKey = localStorage.getItem(DB_KEY_MIDNIGHT+'lastFired')||'';
-    if (storedKey===resetKey) { scheduleMidnightReset(); return; }
+onFullRefresh(() => {
+  renderLangUI();
+  renderReminderList();
+  wtRenderTasks();
+  renderTodayWeeklyPanel();
+  jRenderLogs();
+  updateMissedAlertDisplay();
+});
 
-    safeLocalStorageSave(DB_KEY_MIDNIGHT+'lastFired', resetKey);
 
-    // Archive before reset
-    if ((state.ctStudyHrs||0)>0 && state.ctLastStudyDate) {
-      if (!state.ctWeeklyHours) state.ctWeeklyHours={};
-      state.ctWeeklyHours[state.ctLastStudyDate] = Math.max(
-        state.ctWeeklyHours[state.ctLastStudyDate]||0, state.ctStudyHrs);
-    }
-    if (state.lastDate) {
-      if (!state.ctDayHistory) state.ctDayHistory={};
-      if (!state.ctDayHistory[state.lastDate]) {
-        state.ctDayHistory[state.lastDate] = state.ctDayDone
-          ? 'complete' : (state.ctStudyHrs||0)>0 ? 'partial' : 'rest';
-      }
-    }
-    if (typeof window.ctEvaluateStreak==='function') window.ctEvaluateStreak();
-
-    state.checks={};  state.water=0;  state.pts=0;
-    state.ctDayDone=false;  state.ctStudyHrs=0;
-    state.ctTodayLogged=false;  state.ctLastStudyDate=null;
-    state.missedBannerDismissedDate='';
-    state.lastResetTimestamp=Date.now();
-
-    window.firedToday={};
-    window._wtFilter='all';
-    window.wtSceneInitialized=false;
-    window.jnkSelected={};
-    window.jnkGridBuilt=false;
-    window.ctPageBuilt=false;
-    _lastThemeKey='';
-    _reminderFirstCheck=true;
-    _ctDayCompletedThisSession=false;
-    _convertDayTasks();
-
-    if (typeof window.resetDailyLangFlags==='function') window.resetDailyLangFlags();
-    try { if (typeof window.jCheckWeekReset==='function') window.jCheckWeekReset(); } catch(e){}
-    try { if (typeof window.wtCheckWeekReset==='function') window.wtCheckWeekReset(); } catch(e){}
-
-    state.lastDate = resetKey;
-    saveFiredToday();
-    await save();
-
-    if (typeof window.refreshUI==='function') window.refreshUI();
-    const b = document.getElementById('banner');
-    if(b){ b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),4000); }
-    showToast('New day started! Checklist reset.','gt');
-
-    // Reattach listeners for new day's Firebase path
-    _detachAllListeners();
-    startRealtimeSync();
-    scheduleMidnightReset();
-
-  }, msUntil);
-}
-
-// ─── Master timer ─────────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════
+   MASTER TIMER (30s interval)
+   ═══════════════════════════════════════════════════════════════ */
 
 /**
- * Single 30-second interval that drives all periodic background work.
- * Called ONCE from init(), again only after factory reset.
+ * Starts the master timer that drives periodic updates.
  */
-export function startMasterTimer() {
-  if (masterTimerId) { clearInterval(masterTimerId); masterTimerId=null; }
-  masterTickCount = 0;
+function startMasterTimer() {
+  if (flags.masterTimerId) { clearInterval(flags.masterTimerId); flags.masterTimerId = null; }
+  flags.masterTickCount = 0;
 
-  masterTimerId = setInterval(()=>{
+  flags.masterTimerId = setInterval(() => {
     if (document.hidden) return;
-    masterTickCount++;
+    flags.masterTickCount++;
 
-    // Every tick (30s): check reminders
-    if (typeof window.checkReminders==='function') window.checkReminders();
+    // Every 30s: check reminders
+    if (flags.masterTickCount % 1 === 0) checkReminders();
 
-    // Every 2 ticks (60s): update theme + reminders panel + career hero
-    if (masterTickCount%2===0) {
-      if (typeof applyTheme==='function') applyTheme();
-      if (typeof window.renderHomeReminders==='function') window.renderHomeReminders();
-      if (typeof window.ctRenderHero==='function') window.ctRenderHero();
+    // Every 60s: theme, home reminders, career hero
+    if (flags.masterTickCount % 2 === 0) {
+      applyTheme();
+      renderHomeReminders();
+      ctRenderHero();
     }
 
-    // Every 10 ticks (5min): stats + streak + cleanup
-    if (masterTickCount%10===0) {
-      if (typeof window.updateStatsBanner==='function') window.updateStatsBanner();
-      if (typeof window.checkStreakMilestone==='function') window.checkStreakMilestone();
-      if (typeof window.ctCleanWeeklyHours==='function') window.ctCleanWeeklyHours();
-      try { if (typeof window.jCheckWeekReset==='function') window.jCheckWeekReset(); } catch(e){}
-
-      // Rebuild settings only when needed AND settings page is active
-      if (_settingsNeedRebuild) {
-        const sp = document.getElementById('page-settings');
-        if (sp&&sp.classList.contains('active')&&typeof window.buildSettingsPage==='function')
-          window.buildSettingsPage();
-      }
+    // Every 5 min: stats, streak milestone, cleanup, week reset
+    if (flags.masterTickCount % 10 === 0) {
+      updateStatsBanner();
+      checkStreakMilestone();
+      ctCleanWeeklyHours();
+      try { jCheckWeekReset(); } catch (e) { /* ignore */ }
     }
 
-    if (masterTickCount>100000) masterTickCount=0;
+    // Every 5 min: settings rebuild if needed AND page is active
+    if (flags.masterTickCount % 10 === 0 && flags._settingsNeedRebuild) {
+      const sp = document.getElementById('page-settings');
+      if (sp && sp.classList.contains('active')) buildSettingsPage();
+    }
+
+    if (flags.masterTickCount > 100000) flags.masterTickCount = 0;
   }, 30000);
 }
 
-// ─── Visibility change handler ────────────────────────────────────────────────
 
-document.addEventListener('visibilitychange', async()=>{
-  if (document.hidden) {
-    // Flush any pending saves on hide
-    try { safeLocalStorageSave(DB_KEY, JSON.stringify(state)); } catch(e){}
-    if (window.saveDebounceTimer) {
-      clearTimeout(window.saveDebounceTimer);
-      window.saveDebounceTimer=null;
-      save();
-    }
-    // Archive in-progress study hours
-    if ((state.ctStudyHrs||0)>0 && state.ctLastStudyDate && state.ctLastStudyDate===todayKey()) {
-      if (!state.ctWeeklyHours) state.ctWeeklyHours={};
-      const key = state.ctLastStudyDate;
-      if (state.ctStudyHrs>(state.ctWeeklyHours[key]||0)) {
-        state.ctWeeklyHours[key] = state.ctStudyHrs;
-        debouncedSave(200);
+/* ═══════════════════════════════════════════════════════════════
+   VISIBILITY CHANGE HANDLER
+   ═══════════════════════════════════════════════════════════════ */
+
+function _setupVisibilityHandler() {
+  document.addEventListener('visibilitychange', async () => {
+    if (document.hidden) {
+      // Save state when going to background
+      try { safeLocalStorageSave(DB_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+      if (flags.saveDebounceTimer) {
+        clearTimeout(flags.saveDebounceTimer);
+        flags.saveDebounceTimer = null;
+        save();
       }
-    }
-    return;
-  }
 
-  // App became visible
-  _wtAppOpenTime = Date.now();
-  if (typeof applyTheme==='function') applyTheme();
-
-  // Re-establish realtime sync if it gave up
-  if (window.realtimeRetryCount>=10) {
-    window.realtimeRetryCount = 0;
-    _detachAllListeners();
-    startRealtimeSync();
-  }
-
-  const today = todayKey();
-  if (state.lastDate!==today) {
-    const storedKey = localStorage.getItem(DB_KEY_MIDNIGHT+'lastFired')||'';
-    if (storedKey===today) {
-      if(typeof window.refreshUI==='function') window.refreshUI();
+      // Archive study hours if studying
+      if ((state.ctStudyHrs || 0) > 0 && state.ctLastStudyDate && state.ctLastStudyDate === todayKey()) {
+        if (!state.ctWeeklyHours) state.ctWeeklyHours = {};
+        const key = state.ctLastStudyDate;
+        if (state.ctStudyHrs > (state.ctWeeklyHours[key] || 0)) {
+          state.ctWeeklyHours[key] = state.ctStudyHrs;
+          debouncedSave(200);
+        }
+      }
       return;
     }
 
-    // New day detected — perform reset
-    if ((state.ctStudyHrs||0)>0 && state.ctLastStudyDate) {
-      if (!state.ctWeeklyHours) state.ctWeeklyHours={};
-      state.ctWeeklyHours[state.ctLastStudyDate] = Math.max(
-        state.ctWeeklyHours[state.ctLastStudyDate]||0, state.ctStudyHrs);
+    // ── Returning from background ──
+    flags._wtAppOpenTime = Date.now();
+    applyTheme();
+
+    // Retry sync if previously exhausted
+    if (flags.realtimeRetryCount >= 10) {
+      flags.realtimeRetryCount = 0;
+      detachAllListeners();
+      startRealtimeSync();
     }
-    if (state.lastDate && state.ctDayHistory && !state.ctDayHistory[state.lastDate]) {
-      state.ctDayHistory[state.lastDate] = state.ctDayDone
-        ? 'complete' : (state.ctStudyHrs||0)>0 ? 'partial' : 'rest';
+
+    // Check for day change
+    const today = todayKey();
+    if (state.lastDate !== today) {
+      const storedKey = localStorage.getItem(DB_KEY_MIDNIGHT + 'lastFired') || '';
+      if (storedKey === today) { refreshUI(); return; }
+
+      // Archive
+      if ((state.ctStudyHrs || 0) > 0 && state.ctLastStudyDate) {
+        if (!state.ctWeeklyHours) state.ctWeeklyHours = {};
+        state.ctWeeklyHours[state.ctLastStudyDate] = Math.max(
+          state.ctWeeklyHours[state.ctLastStudyDate] || 0, state.ctStudyHrs
+        );
+      }
+      if (state.lastDate && state.ctDayHistory && !state.ctDayHistory[state.lastDate]) {
+        state.ctDayHistory[state.lastDate] = state.ctDayDone
+          ? 'complete' : (state.ctStudyHrs || 0) > 0 ? 'partial' : 'rest';
+      }
+
+      // Reset
+      state.checks = {}; state.water = 0; state.pts = 0;
+      state.ctDayDone = false; state.ctStudyHrs = 0; state.ctTodayLogged = false;
+      state.ctLastStudyDate = null; state.missedBannerDismissedDate = '';
+      state.lastResetTimestamp = Date.now();
+      flags.firedToday = {}; flags.wtFilter = 'all'; flags.wtSceneInitialized = false;
+      flags.jnkSelected = {}; flags.jnkGridBuilt = false; flags.saveFailCount = 0;
+      flags.ctPageBuilt = false; flags.cachedSceneHeight = 0; flags._reminderFirstCheck = true;
+
+      resetDailyLangFlags();
+      try { jCheckWeekReset(); } catch (e) { /* ignore */ }
+      try { wtCheckWeekReset(); } catch (e) { /* ignore */ }
+
+      safeLocalStorageSave(DB_KEY_MIDNIGHT + 'lastFired', today);
+      state.lastDate = today;
+      await save();
+      refreshUI();
+
+      detachAllListeners();
+      startRealtimeSync();
+
+      const b = document.getElementById('banner');
+      if (b) { b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 4000); }
+      showToast('New day! Checklist reset.', 'gt');
+      return;
     }
-    if (typeof window.ctEvaluateStreak==='function') window.ctEvaluateStreak();
 
-    state.checks={};  state.water=0;  state.pts=0;
-    state.ctDayDone=false;  state.ctStudyHrs=0;
-    state.ctTodayLogged=false;  state.ctLastStudyDate=null;
-    state.missedBannerDismissedDate='';
-    state.lastResetTimestamp=Date.now();
+    // Normal return — refresh UI
+    if (state.wtReminderEnabled) {
+      if (flags.wtRemNextTimeout) { clearTimeout(flags.wtRemNextTimeout); flags.wtRemNextTimeout = null; }
+      wtRemScheduleNext();
+    }
+    renderHomeReminders();
+    checkReminders();
+    updateStatsBanner();
+  });
+}
 
-    window.firedToday={};
-    window.wtSceneInitialized=false;
-    window.jnkSelected={};
-    window.jnkGridBuilt=false;
-    window.ctPageBuilt=false;
-    _reminderFirstCheck=true;
-    _convertDayTasks();
 
-    if (typeof window.resetDailyLangFlags==='function') window.resetDailyLangFlags();
-    try { if (typeof window.jCheckWeekReset==='function') window.jCheckWeekReset(); } catch(e){}
-    try { if (typeof window.wtCheckWeekReset==='function') window.wtCheckWeekReset(); } catch(e){}
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL EVENT LISTENERS
+   ═══════════════════════════════════════════════════════════════ */
 
-    safeLocalStorageSave(DB_KEY_MIDNIGHT+'lastFired', today);
-    state.lastDate = today;
-    await save();
-    if(typeof window.refreshUI==='function') window.refreshUI();
-    _detachAllListeners();
-    startRealtimeSync();
-    const b = document.getElementById('banner');
-    if(b){ b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),4000); }
-    showToast('New day! Checklist reset.','gt');
-    return;
+function _setupGlobalEvents() {
+  // ── Network status ──
+  window.addEventListener('online', () => {
+    updateFbStatus('syncing');
+    showToast('Back online — syncing...', 'gt');
+    flags.saveFailCount = 0;
+    flags.realtimeRetryCount = 0;
+    setTimeout(() => { debouncedSave(500); detachAllListeners(); startRealtimeSync(); }, 1000);
+  });
+
+  window.addEventListener('offline', () => {
+    updateFbStatus('offline');
+    showToast('Offline — changes saved locally', 'yt');
+  });
+
+  // ── Orientation change ──
+  window.addEventListener('orientationchange', () => {
+    flags.cachedSceneHeight = 0;
+    setTimeout(() => { if (document.getElementById('wt-scene')) renderWater(); }, 300);
+  });
+
+  // ── Window resize ──
+  window.addEventListener('resize', () => { flags.cachedSceneHeight = 0; });
+
+  // ── Checklist item clicks (event delegation) ──
+  document.addEventListener('click', e => {
+    const ci = e.target.closest('.ci[data-key]');
+    if (!ci) return;
+    if (e.target.closest('.reorder-btn')) return;
+    if (e.target.closest('.task-emoji')) return;
+    if (e.target.closest('[data-action]')) return;
+    toggle(ci);
+  });
+
+  // ── Keyboard: Enter/Space on checklist items ──
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const active = document.activeElement;
+      if (!active) return;
+      if (active.classList.contains('ci')) { e.preventDefault(); toggle(active); }
+    }
+
+    // Escape key closes modals
+    if (e.key === 'Escape') {
+      const modals = [
+        { id: 'biryani-confirm-modal', fn: closeBiryaniConfirm },
+        { id: 'badges-modal', fn: closeBadges },
+        { id: 'edit-modal', fn: closeEditModal },
+        { id: 'weekly-edit-modal', fn: () => import('../tabs/weekly.js').then(m => m.closeWeeklyEditModal()) },
+        { id: 'icon-picker-overlay', fn: closeIconPicker }
+      ];
+      for (const m of modals) {
+        const el = document.getElementById(m.id);
+        if (el && el.classList.contains('open')) { m.fn(); return; }
+      }
+      const missed = document.getElementById('missed-banner');
+      if (missed && missed.classList.contains('show')) closeMissedBanner();
+    }
+  });
+
+  // ── In-app notification close ──
+  document.addEventListener('click', e => {
+    if (e.target && e.target.closest('.inapp-notif-close')) closeInApp();
+    if (e.target && e.target.closest('.missed-banner-close')) closeMissedBanner();
+  });
+
+  // ── Badges button ──
+  document.addEventListener('click', e => {
+    if (e.target && e.target.closest('.badges-view-btn')) {
+      import('../shared/badges.js').then(m => m.openBadges());
+    }
+    // Close badges modal on overlay click
+    if (e.target && e.target.id === 'badges-modal' && e.target.classList.contains('open')) {
+      closeBadges();
+    }
+  });
+
+  // ── Nav-to action (from weekly panel on today page) ──
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-action="nav-to"]');
+    if (!el) return;
+    const navBtns = document.querySelectorAll('.nb');
+    const navBtn = navBtns[+el.dataset.navIndex];
+    if (navBtn) showPage(el.dataset.page, navBtn);
+  });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SWIPE NAVIGATION
+   ═══════════════════════════════════════════════════════════════ */
+
+function _setupSwipeNav() {
+  const PAGE_ORDER = ['today', 'study', 'english', 'junk', 'weekly', 'reminders', 'settings'];
+  let touchStartX = 0, touchStartY = 0, touchStartT = 0;
+
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartT = Date.now();
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    const dt = Date.now() - touchStartT;
+
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) || dt > 400) return;
+
+    // Don't swipe if inside a scrollable container
+    const scrollable = e.target.closest(
+      '.stats-banner, nav, .weekly-filter-row, .wt-glasses-row, .ct-tag-row, ' +
+      '.jnk-cat-grid, .preset-chips, .days-picker, .badge-grid, ' +
+      '.icon-emoji-grid, .ct-chart-bars, .jnk-chips-area, ' +
+      '.wt-rem-presets, .section-labels, .ct-milestones, ' +
+      '.ct-log-list, .jnk-activity-list, .modal-sheet, .icon-picker-sheet'
+    );
+    if (scrollable) return;
+
+    const activePage = document.querySelector('.page.active');
+    if (!activePage) return;
+    const currentId = activePage.id.replace('page-', '');
+    const currentIdx = PAGE_ORDER.indexOf(currentId);
+    if (currentIdx === -1) return;
+
+    const nextIdx = dx < 0
+      ? Math.min(currentIdx + 1, PAGE_ORDER.length - 1)
+      : Math.max(currentIdx - 1, 0);
+    if (nextIdx === currentIdx) return;
+
+    const navBtns = document.querySelectorAll('.nb');
+    const navBtn = navBtns[nextIdx];
+    if (navBtn) showPage(PAGE_ORDER[nextIdx], navBtn);
+  }, { passive: true });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   FOCUS TRAP & SCROLL LOCK
+   ═══════════════════════════════════════════════════════════════ */
+
+function _setupFocusTrap() {
+  const MODAL_IDS = ['badges-modal', 'edit-modal', 'weekly-edit-modal', 'icon-picker-overlay', 'biryani-confirm-modal'];
+  const FOCUSABLE = 'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const open = MODAL_IDS.map(id => document.getElementById(id)).find(el => el && el.classList.contains('open'));
+    if (!open) return;
+
+    const items = Array.from(open.querySelectorAll(FOCUSABLE));
+    if (!items.length) return;
+
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+}
+
+function _setupModalScrollLock() {
+  const MODAL_IDS = ['badges-modal', 'edit-modal', 'weekly-edit-modal', 'icon-picker-overlay', 'biryani-confirm-modal'];
+  if (typeof MutationObserver === 'undefined') return;
+
+  MODAL_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const mo = new MutationObserver(() => {
+      const anyOpen = MODAL_IDS.some(mid => {
+        const m = document.getElementById(mid);
+        return m && m.classList.contains('open');
+      });
+      document.body.style.overflow = anyOpen ? 'hidden' : '';
+    });
+    mo.observe(el, { attributes: true, attributeFilter: ['class'] });
+  });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DOUBLE-TAP ZOOM PREVENTION
+   ═══════════════════════════════════════════════════════════════ */
+
+function _setupDoubleTapPrevention() {
+  let lastTap = 0;
+  const TARGETS = ['.ci', '.wt-glass-btn', '.jnk-cat-card', '.nb', '.weekly-cb', '.ct-hour-btn', '.ct-skill-btn', '.lang-mark-btn', '.s-btn'].join(',');
+
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    const diff = now - lastTap;
+    if (diff < 300 && diff > 0) {
+      const el = e.target.closest(TARGETS);
+      if (el) { e.preventDefault(); el.click(); }
+    }
+    lastTap = now;
+  }, { passive: false });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   iOS INPUT SCROLL FIX
+   ═══════════════════════════════════════════════════════════════ */
+
+function _setupIOSInputFix() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (!isIOS) return;
+
+  document.addEventListener('focusin', e => {
+    const el = e.target;
+    if (!el) return;
+    const tag = el.tagName.toLowerCase();
+    if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') return;
+    setTimeout(() => { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 350);
+  }, { passive: true });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DATA CLEANUP
+   ═══════════════════════════════════════════════════════════════ */
+
+function _cleanOrphanEntries() {
+  setTimeout(() => {
+    let changed = false;
+
+    // Fix sugarLog entries missing dateKey
+    if (Array.isArray(state.sugarLog)) {
+      state.sugarLog = state.sugarLog.filter(e => {
+        if (e.dateKey && /^\d{4}-\d{2}-\d{2}$/.test(e.dateKey)) return true;
+        if (e.weekStart && e.weekStart === state.sugarWeekStart && e.date) {
+          try {
+            const d = new Date(e.date);
+            if (!isNaN(d.getTime())) {
+              e.dateKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+              changed = true;
+              return true;
+            }
+          } catch (_) { /* ignore */ }
+        }
+        return false;
+      });
+    }
+
+    // Fix junkLog entries missing dateKey
+    if (Array.isArray(state.junkLog)) {
+      state.junkLog = state.junkLog.map(e => {
+        if (e.dateKey && /^\d{4}-\d{2}-\d{2}$/.test(e.dateKey)) return e;
+        if (e.date) {
+          try {
+            const d = new Date(e.date);
+            if (!isNaN(d.getTime())) {
+              e.dateKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+              changed = true;
+              return e;
+            }
+          } catch (_) { /* ignore */ }
+        }
+        return null;
+      }).filter(Boolean);
+    }
+
+    if (changed) {
+      try { safeLocalStorageSave(DB_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+      updateStatsBanner();
+    }
+  }, 3000);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   LOADING SCREEN
+   ═══════════════════════════════════════════════════════════════ */
+
+function _dismissLoadingScreen() {
+  const bar = document.getElementById('loading-bar');
+  const screen = document.getElementById('app-loading-screen');
+  if (!bar || !screen) return;
+
+  let dismissed = false;
+  let progress = 0;
+
+  function dismiss() {
+    if (dismissed) return;
+    dismissed = true;
+    clearInterval(progressTimer);
+    bar.style.width = '100%';
+    setTimeout(() => {
+      screen.style.opacity = '0';
+      setTimeout(() => { if (screen.parentNode) screen.parentNode.removeChild(screen); }, 400);
+    }, 200);
   }
 
-  // Same day — just refresh reminders and UI
-  if (state.wtReminderEnabled && typeof window.wtRemScheduleNext==='function')
-    window.wtRemScheduleNext();
-  if (typeof window.renderHomeReminders==='function') window.renderHomeReminders();
-  if (typeof window.checkReminders==='function') window.checkReminders();
-  if (typeof window.updateStatsBanner==='function') window.updateStatsBanner();
-});
+  const checkTimer = setInterval(() => {
+    if (dismissed) { clearInterval(checkTimer); return; }
+    const sections = document.getElementById('today-sections');
+    const hasContent = sections && sections.children.length > 0;
+    const stateReady = state.lastDate !== undefined;
+    if (hasContent && stateReady) { clearInterval(checkTimer); dismiss(); }
+  }, 100);
 
-// ─── Network status ────────────────────────────────────────────────────────────
+  setTimeout(() => { clearInterval(checkTimer); if (!dismissed) dismiss(); }, 3000);
 
-window.addEventListener('online', ()=>{
-  updateFbStatus('syncing');
-  showToast('Back online — syncing...','gt');
-  window.saveFailCount=0;
-  window.realtimeRetryCount=0;
-  setTimeout(()=>{ debouncedSave(500); _detachAllListeners(); startRealtimeSync(); }, 1000);
-});
+  const progressTimer = setInterval(() => {
+    if (dismissed) return;
+    progress = Math.min(95, progress + (95 - progress) * 0.08);
+    bar.style.width = progress + '%';
+  }, 100);
+}
 
-window.addEventListener('offline', ()=>{
-  updateFbStatus('offline');
-  showToast('Offline — changes saved locally','yt');
-});
 
-// Import updateFbStatus for network handlers
-import { updateFbStatus } from './firebase.js';
+/* ═══════════════════════════════════════════════════════════════
+   NAV BUTTON BINDING
+   ═══════════════════════════════════════════════════════════════ */
 
-// ─── Main init function ───────────────────────────────────────────────────────
+function _setupNavButtons() {
+  const PAGE_MAP = ['today', 'study', 'english', 'junk', 'weekly', 'reminders', 'settings'];
 
-async function init() {
+  document.querySelectorAll('.nb').forEach((btn, idx) => {
+    btn.addEventListener('click', () => {
+      showPage(PAGE_MAP[idx], btn);
+    });
+  });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT — Complete startup sequence
+   ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Main initialization function.
+ * Called on DOMContentLoaded and after factory reset.
+ */
+export async function init() {
+  // ── Firebase ──
+  initFirebase();
+
+  // ── Load state ──
   loadFiredToday();
-  Object.assign(state, defaultState());
-  window.currentUID = 'sandy_shared';
+  replaceState(defaultState());
+  flags.currentUID = 'sandy_shared';
 
   await load();
   ensureDefaults();
   handleDailyReset();
 
-  // Run career daily reset early so streak displays correctly
-  if (typeof window.ctDailyReset==='function') window.ctDailyReset();
+  // Career daily reset (so streak displays correctly before tab visit)
+  ctDailyReset();
+  if (state.ctDayDone) flags._ctDayCompletedThisSession = true;
+  else flags._ctDayCompletedThisSession = false;
 
-  // Session flags
-  _ctDayCompletedThisSession = !!state.ctDayDone;
-  window._ctDayCompletedThisSession = _ctDayCompletedThisSession;
+  // ── Cleanup ──
+  _cleanOrphanEntries();
+  ctCleanWeeklyHours();
 
-  // Deferred cleanup
-  if (typeof window.cleanOrphanEntries==='function') window.cleanOrphanEntries();
-  if (typeof window.ctCleanWeeklyHours==='function') window.ctCleanWeeklyHours();
-
-  // Theme (force full rewrite on first load)
-  _lastThemeKey = '';
-  window._lastThemeKey = _lastThemeKey;
+  // ── Theme ──
+  flags._lastThemeKey = '';
   applyTheme();
+  flags._settingsNeedRebuild = true;
 
-  _settingsNeedRebuild = true;
-  window._settingsNeedRebuild = _settingsNeedRebuild;
+  // ── Build pages ──
+  buildEnglishPage();
+  buildWeeklyPage();
+  buildRemindersPage();
+  buildSettingsPageShell();
 
-  // Build Today page
-  if (typeof window.rebuildTodaySections==='function') window.rebuildTodaySections();
-  if (typeof window.applyChecks==='function') window.applyChecks();
-  if (typeof window.renderHomeReminders==='function') window.renderHomeReminders();
-  if (typeof window.updateSummaryCards==='function') window.updateSummaryCards();
-  if (typeof window.updateStatsBanner==='function') window.updateStatsBanner();
-  if (typeof window.renderLangUI==='function') window.renderLangUI();
-  if (typeof window.updateProg==='function') window.updateProg();
-  if (typeof window.updateReward==='function') window.updateReward();
-  if (typeof window._updateFooterChips==='function') window._updateFooterChips();
-  if (typeof window.renderTodayWeeklyPanel==='function') window.renderTodayWeeklyPanel();
+  // ── Build today page ──
+  rebuildTodaySections();
+  applyChecks();
+  renderHomeReminders();
+  updateSummaryCards();
+  updateStatsBanner();
+  renderLangUI();
+  updateProg();
+  updateReward();
+  updateFooterChips();
+  renderTodayWeeklyPanel();
 
-  // Junk page init
-  if (typeof window.jnkBuildCatGrid==='function') window.jnkBuildCatGrid();
-  if (typeof window.jnkRenderChips==='function') window.jnkRenderChips();
-  if (typeof window.jnkRenderAll==='function') window.jnkRenderAll();
-  if (typeof window.jRenderSugar==='function') window.jRenderSugar();
-  if (typeof window.jRenderBiryani==='function') window.jRenderBiryani();
-  if (typeof window.jRenderLogs==='function') window.jRenderLogs();
+  // ── Junk page ──
+  jnkBuildCatGrid();
+  jnkRenderChips();
+  jnkRenderAll();
+  jRenderSugar();
+  jRenderBiryani();
+  jRenderLogs();
 
-  // Week resets (after load so toasts are accurate)
-  try { if (typeof window.jCheckWeekReset==='function') window.jCheckWeekReset(); } catch(e){}
-  try { if (typeof window.wtCheckWeekReset==='function') window.wtCheckWeekReset(); } catch(e){}
+  // ── Week resets ──
+  try { jCheckWeekReset(); } catch (e) { /* ignore */ }
+  try { wtCheckWeekReset(); } catch (e) { /* ignore */ }
 
-  // Reminders
-  if (typeof window.buildDaysPicker==='function') window.buildDaysPicker();
-  if (typeof window.buildPresetChips==='function') window.buildPresetChips();
-  if (typeof window.updateNotifStatusUI==='function') window.updateNotifStatusUI();
-  if (typeof window.renderReminderList==='function') window.renderReminderList();
+  // ── Reminders page ──
+  buildDaysPicker();
+  buildPresetChips();
+  updateNotifStatusUI();
+  renderReminderList();
 
-  // Career
-  if (typeof window.ctInit==='function') window.ctInit();
+  // ── Career ──
+  ctInit();
 
-  // Weekly
-  if (typeof window.wtRenderTasks==='function') window.wtRenderTasks();
-  if (typeof window.renderTodayWeeklyPanel==='function') window.renderTodayWeeklyPanel();
+  // ── Weekly ──
+  wtRenderTasks();
+  renderTodayWeeklyPanel();
 
-  // Settings
-  if (typeof window.updateMissedAlertDisplay==='function') window.updateMissedAlertDisplay();
+  // ── Settings ──
+  updateMissedAlertDisplay();
 
-  // Start background systems
+  // ── Master timer ──
   startMasterTimer();
-  _wtAppOpenTime = Date.now();
-  window._wtAppOpenTime = _wtAppOpenTime;
 
+  // ── App open time ──
+  flags._wtAppOpenTime = Date.now();
+
+  // ── Firebase realtime ──
   startRealtimeSync();
   scheduleMidnightReset();
 
-  _reminderFirstCheck = true;
-  window._reminderFirstCheck = _reminderFirstCheck;
-  if (typeof window.checkReminders==='function') window.checkReminders();
+  // ── Reminders ──
+  flags._reminderFirstCheck = true;
+  checkReminders();
 
-  // Service worker & PWA
-  if (typeof window.registerInlineServiceWorker==='function')
-    window.registerInlineServiceWorker();
+  // ── PWA ──
+  initPWA();
 
-  // Deep link navigation
-  const hash = window.location.hash.replace('#','').trim();
+  // ── Deep link navigation ──
+  const hash = window.location.hash.replace('#', '').trim();
   if (hash) {
-    const pageMap = {today:0,study:1,english:2,junk:3,weekly:4,reminders:5,settings:6};
-    if (pageMap[hash]!==undefined) {
-      setTimeout(()=>{
+    const pageMap = { today: 0, study: 1, english: 2, junk: 3, weekly: 4, reminders: 5, settings: 6 };
+    if (pageMap[hash] !== undefined) {
+      setTimeout(() => {
         const navBtns = document.querySelectorAll('.nb');
         const btn = navBtns[pageMap[hash]];
-        if (btn) window.showPage(hash, btn);
+        if (btn) showPage(hash, btn);
       }, 300);
     }
   }
 
-  // Delayed streak milestone check
-  setTimeout(()=>{
-    if (typeof window.checkStreakMilestone==='function') window.checkStreakMilestone();
-  }, 2000);
+  // ── Streak milestone ──
+  setTimeout(() => checkStreakMilestone(), 2000);
 
-  console.log('%cSandy Brain initialized','color:#7C3AED;font-weight:900;font-family:system-ui;');
+  console.log('%cSandy\'s Second Brain', 'color:#7C3AED;font-size:16px;font-weight:900;font-family:system-ui;');
+  console.log('%cModular architecture · ES6 modules · Zero inline handlers', 'color:#16a34a;font-size:11px;font-family:system-ui;');
 }
 
-// ─── Boot ─────────────────────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  requestAnimationFrame(()=>{
-    init().catch(err=>{
+/* ═══════════════════════════════════════════════════════════════
+   DOMContentLoaded — Entry point
+   ═══════════════════════════════════════════════════════════════ */
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Start loading screen animation immediately
+  _dismissLoadingScreen();
+
+  // Setup nav buttons
+  _setupNavButtons();
+
+  // Setup global event handlers
+  _setupGlobalEvents();
+  _setupVisibilityHandler();
+  _setupSwipeNav();
+  _setupFocusTrap();
+  _setupModalScrollLock();
+  _setupDoubleTapPrevention();
+  _setupIOSInputFix();
+
+  // Bind module-specific events
+  bindWaterEvents();
+  bindCareerEvents();
+  bindEnglishEvents();
+  bindJunkEvents();
+  bindWeeklyEvents();
+  bindReminderEvents();
+  bindSettingsEvents();
+
+  // Boot the app
+  requestAnimationFrame(() => {
+    init().catch(err => {
       console.error('Sandy Brain: init failed:', err);
       try {
         ensureDefaults();
-        if (typeof window.rebuildTodaySections==='function') window.rebuildTodaySections();
-        if (typeof window.applyChecks==='function') window.applyChecks();
+        rebuildTodaySections();
+        applyChecks();
         applyTheme();
-      } catch(e) {}
+      } catch (e) { /* ignore */ }
     });
   });
 });
 
-// ─── Loading screen ────────────────────────────────────────────────────────────
 
-(function runLoadingScreen() {
-  const bar    = document.getElementById('loading-bar');
-  const screen = document.getElementById('app-loading-screen');
-  if (!bar||!screen) return;
+/* ═══════════════════════════════════════════════════════════════
+   ERROR HANDLERS
+   ═══════════════════════════════════════════════════════════════ */
 
-  let dismissed = false, progress = 0;
+window.addEventListener('error', event => {
+  console.warn('Sandy Brain error:', event.message, event.filename, event.lineno);
+});
 
-  function dismiss() {
-    if (dismissed) return; dismissed = true;
-    clearInterval(progressTimer);
-    bar.style.width = '100%';
-    setTimeout(()=>{
-      screen.style.opacity = '0';
-      setTimeout(()=>{ if(screen.parentNode) screen.parentNode.removeChild(screen); }, 400);
-    }, 200);
+window.addEventListener('unhandledrejection', event => {
+  if (event.reason && typeof event.reason.message === 'string' &&
+    /firebase|network|fetch|Failed to fetch/i.test(event.reason.message)) {
+    event.preventDefault();
+    return;
   }
-
-  const checkTimer = setInterval(()=>{
-    if (dismissed) { clearInterval(checkTimer); return; }
-    const sections = document.getElementById('today-sections');
-    const hasContent = sections && sections.children.length>0;
-    const stateReady = typeof state!=='undefined' && state!==null && state.lastDate!==undefined;
-    if (hasContent && stateReady) { clearInterval(checkTimer); dismiss(); }
-  }, 100);
-
-  setTimeout(()=>{ clearInterval(checkTimer); if(!dismissed) dismiss(); }, 3000);
-
-  const progressTimer = setInterval(()=>{
-    if (dismissed) return;
-    progress = Math.min(95, progress+(95-progress)*0.08);
-    bar.style.width = progress+'%';
-  }, 100);
-})();
-
-// ─── Window exports ────────────────────────────────────────────────────────────
-
-Object.assign(window, {
-  handleDailyReset, _convertDayTasks, scheduleMidnightReset,
-  startMasterTimer,
-  get _lastThemeKey(){ return _lastThemeKey; },
-  set _lastThemeKey(v){ _lastThemeKey=v; },
-  get _reminderFirstCheck(){ return _reminderFirstCheck; },
-  set _reminderFirstCheck(v){ _reminderFirstCheck=v; },
-  get _settingsNeedRebuild(){ return _settingsNeedRebuild; },
-  set _settingsNeedRebuild(v){ _settingsNeedRebuild=v; },
-  get _lastStreakMilestone(){ return _lastStreakMilestone; },
-  set _lastStreakMilestone(v){ _lastStreakMilestone=v; },
-  get _lastEveningWasWeekend(){ return _lastEveningWasWeekend; },
-  set _lastEveningWasWeekend(v){ _lastEveningWasWeekend=v; },
-  get _ctDayCompletedThisSession(){ return _ctDayCompletedThisSession; },
-  set _ctDayCompletedThisSession(v){ _ctDayCompletedThisSession=v; },
-  get _wtAppOpenTime(){ return _wtAppOpenTime; },
-  set _wtAppOpenTime(v){ _wtAppOpenTime=v; }
+  console.warn('Sandy Brain: unhandled rejection:', event.reason);
 });
